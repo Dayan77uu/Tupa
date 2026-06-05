@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUPA UNSAAC — Mis Trámites</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --rojo: #C0392B; --rojo-oscuro: #922B21;
+    --gris-bg: #F2F2F0; --gris-card: #FAFAF8; --gris-borde: #E0E0DC;
+    --texto: #1A1A1A; --texto-muted: #6B6B68; --blanco: #FAFAF8;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--gris-bg); color: var(--texto); min-height: 100vh; }
+
+  nav {
+    background: var(--blanco); border-bottom: 1px solid var(--gris-borde);
+    padding: 0 40px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-marca { display: flex; align-items: center; gap: 12px; }
+  .nav-logo {
+    width: 34px; height: 34px; background: var(--rojo); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif; font-size: 16px; color: #fff;
+  }
+  .nav-titulo { font-size: 15px; font-weight: 600; }
+  .nav-subtitulo { font-size: 12px; color: var(--texto-muted); }
+  .nav-der { display: flex; align-items: center; gap: 16px; }
+  .notif-btn {
+    position: relative; background: none; border: none; cursor: pointer;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; transition: background 0.15s; color: var(--texto-muted);
+  }
+  .notif-btn:hover { background: var(--gris-bg); }
+  .notif-badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 16px; height: 16px; background: var(--rojo); border-radius: 50%;
+    font-size: 9px; color: #fff; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .usuario-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 8px; transition: background 0.15s;
+  }
+  .usuario-btn:hover { background: var(--gris-bg); }
+  .avatar {
+    width: 30px; height: 30px; background: var(--rojo-oscuro); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #fff; font-weight: 600;
+  }
+  .usuario-nombre { font-size: 13px; font-weight: 500; }
+
+  main { padding: 36px 40px; max-width: 1100px; margin: 0 auto; }
+
+  .bienvenida { margin-bottom: 28px; }
+  .bienvenida h1 { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 4px; }
+  .bienvenida p { font-size: 14px; color: var(--texto-muted); }
+
+  .resumen { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+  .chip {
+    background: var(--blanco); border: 1px solid var(--gris-borde);
+    border-radius: 10px; padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px; min-width: 130px;
+  }
+  .chip-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .chip-num { font-size: 22px; font-weight: 600; line-height: 1; }
+  .chip-label { font-size: 11px; color: var(--texto-muted); margin-top: 2px; }
+
+  .acciones-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+  }
+  .acciones-header h2 { font-size: 16px; font-weight: 600; }
+  .btn-nuevo {
+    background: var(--rojo); color: #fff; border: none; border-radius: 8px;
+    padding: 10px 18px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-nuevo:hover { background: var(--rojo-oscuro); }
+
+  .tramites-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+  }
+  .tarjeta {
+    background: var(--gris-card); border: 1px solid var(--gris-borde);
+    border-radius: 14px; padding: 22px; cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+  }
+  .tarjeta:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .tarjeta-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .tarjeta-id { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-muted); }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .b-pendiente  { background: #F4F4F4; color: #6B6B68; }
+  .b-revision   { background: #EBF3FC; color: #1A5E9A; }
+  .b-observado  { background: #FEF3E2; color: #9C5A00; }
+  .b-aprobado   { background: #E8F6EE; color: #1A7A42; }
+  .b-rechazado  { background: #FDEDEC; color: #922B21; }
+  .tarjeta-nombre { font-size: 15px; font-weight: 600; line-height: 1.35; margin-bottom: 6px; }
+  .tarjeta-oficina { font-size: 12px; color: var(--texto-muted); margin-bottom: 18px; }
+  .tarjeta-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--gris-borde); padding-top: 14px;
+  }
+  .tarjeta-fecha { font-size: 12px; color: var(--texto-muted); }
+  .btn-acc {
+    font-size: 12px; font-weight: 600; border: none; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-acc:hover { opacity: 0.8; }
+  .btn-subsanar  { background: #FEF3E2; color: #9C5A00; }
+  .btn-descargar { background: #E8F6EE; color: #1A7A42; }
+  .btn-ver       { background: var(--gris-bg); color: var(--texto-muted); }
+
+  @media (max-width: 640px) {
+    nav, main { padding-left: 20px; padding-right: 20px; }
+    .tramites-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-marca">
+    <div class="nav-logo">T</div>
+    <div>
+      <div class="nav-titulo">TUPA UNSAAC</div>
+      <div class="nav-subtitulo">Portal de trámites</div>
+    </div>
+  </div>
+  <div class="nav-der">
+    <button class="notif-btn">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span class="notif-badge">2</span>
+    </button>
+    <button class="usuario-btn">
+      <div class="avatar">JQ</div>
+      <span class="usuario-nombre">Juan Quispe</span>
+    </button>
+  </div>
+</nav>
+
+<main>
+  <div class="bienvenida">
+    <h1>Mis trámites</h1>
+    <p>Facultad de Ingeniería de Sistemas — Ing. de Sistemas e Informática</p>
+  </div>
+
+  <div class="resumen">
+    <div class="chip"><div class="chip-dot" style="background:#6B6B68"></div><div><div class="chip-num">1</div><div class="chip-label">Pendiente</div></div></div>
+    <div class="chip"><div class="chip-dot" style="background:#1A5E9A"></div><div><div class="chip-num">1</div><div class="chip-label">En revisión</div></div></div>
+    <div class="chip"><div class="chip-dot" style="background:#9C5A00"></div><div><div class="chip-num">1</div><div class="chip-label">Observado</div></div></div>
+    <div class="chip"><div class="chip-dot" style="background:#1A7A42"></div><div><div class="chip-num">1</div><div class="chip-label">Aprobado</div></div></div>
+  </div>
+
+  <div class="acciones-header">
+    <h2>Expedientes recientes</h2>
+    <button class="btn-nuevo">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo trámite
+    </button>
+  </div>
+
+  <div class="tramites-grid">
+
+    <div class="tarjeta">
+      <div class="tarjeta-header">
+        <span class="tarjeta-id">EXP-2024-0312</span>
+        <span class="badge b-observado">⚠ Observado</span>
+      </div>
+      <div class="tarjeta-nombre">Constancia de matrícula regular</div>
+      <div class="tarjeta-oficina">Secretaría General — UTD</div>
+      <div class="tarjeta-footer">
+        <span class="tarjeta-fecha">Hace 3 días</span>
+        <button class="btn-acc btn-subsanar">Subsanar</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-header">
+        <span class="tarjeta-id">EXP-2024-0298</span>
+        <span class="badge b-revision">● En revisión</span>
+      </div>
+      <div class="tarjeta-nombre">Traslado interno de carrera</div>
+      <div class="tarjeta-oficina">Decanato de Ingeniería</div>
+      <div class="tarjeta-footer">
+        <span class="tarjeta-fecha">Hace 7 días</span>
+        <button class="btn-acc btn-ver">Ver detalle</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-header">
+        <span class="tarjeta-id">EXP-2024-0271</span>
+        <span class="badge b-aprobado">✓ Aprobado</span>
+      </div>
+      <div class="tarjeta-nombre">Constancia de estudios</div>
+      <div class="tarjeta-oficina">Secretaría General</div>
+      <div class="tarjeta-footer">
+        <span class="tarjeta-fecha">Hace 15 días</span>
+        <button class="btn-acc btn-descargar">Descargar</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-header">
+        <span class="tarjeta-id">EXP-2024-0255</span>
+        <span class="badge b-pendiente">○ Pendiente</span>
+      </div>
+      <div class="tarjeta-nombre">Convalidación de asignaturas</div>
+      <div class="tarjeta-oficina">Dirección académica</div>
+      <div class="tarjeta-footer">
+        <span class="tarjeta-fecha">Hace 20 días</span>
+        <button class="btn-acc btn-ver">Ver detalle</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>
