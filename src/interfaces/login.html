@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUPA UNSAAC — Iniciar Sesión</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rojo: #C0392B;
+    --rojo-oscuro: #922B21;
+    --rojo-suave: #FADBD8;
+    --gris-claro: #F4F4F2;
+    --gris-medio: #C8C8C5;
+    --texto: #1A1A1A;
+    --texto-muted: #6B6B68;
+    --blanco: #FAFAF8;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gris-claro);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Panel izquierdo — institucional */
+  .panel-izq {
+    background: var(--rojo-oscuro);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px 52px;
+  }
+
+  .panel-izq::before {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.08);
+    top: -120px; left: -120px;
+  }
+  .panel-izq::after {
+    content: '';
+    position: absolute;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.06);
+    bottom: 60px; right: -80px;
+  }
+
+  .escudo {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px; color: #fff;
+    letter-spacing: -1px;
+    z-index: 1;
+  }
+
+  .panel-izq-content {
+    z-index: 1;
+  }
+
+  .panel-izq-content h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    color: #fff;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+
+  .panel-izq-content h1 span {
+    color: rgba(255,255,255,0.45);
+  }
+
+  .panel-izq-content p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.7;
+    max-width: 340px;
+  }
+
+  .stats {
+    display: flex; gap: 32px; z-index: 1;
+  }
+
+  .stat { }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px; color: #fff;
+  }
+  .stat-label {
+    font-size: 12px; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Panel derecho — formulario */
+  .panel-der {
+    background: var(--blanco);
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 60px;
+  }
+
+  .form-wrap {
+    width: 100%; max-width: 380px;
+  }
+
+  .form-titulo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px; color: var(--texto);
+    margin-bottom: 6px;
+  }
+  .form-subtitulo {
+    font-size: 14px; color: var(--texto-muted);
+    margin-bottom: 40px;
+  }
+
+  .campo {
+    margin-bottom: 20px;
+  }
+
+  .campo label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--texto-muted);
+    margin-bottom: 8px;
+  }
+
+  .campo input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1.5px solid var(--gris-medio);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--texto);
+    background: var(--blanco);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  .campo input:focus {
+    border-color: var(--rojo);
+    box-shadow: 0 0 0 3px rgba(192,57,43,0.10);
+  }
+
+  .campo input::placeholder { color: var(--gris-medio); }
+
+  .aviso-correo {
+    font-size: 11.5px;
+    color: var(--texto-muted);
+    margin-top: 6px;
+  }
+
+  .btn-ingresar {
+    width: 100%;
+    padding: 15px;
+    background: var(--rojo);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-ingresar:hover { background: var(--rojo-oscuro); }
+  .btn-ingresar:active { transform: scale(0.98); }
+
+  .separador {
+    display: flex; align-items: center; gap: 12px;
+    margin: 28px 0 20px;
+    color: var(--gris-medio);
+    font-size: 12px;
+  }
+  .separador::before, .separador::after {
+    content: ''; flex: 1; height: 1px; background: var(--gris-medio);
+  }
+
+  .acceso-publico {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    color: var(--texto-muted);
+    border: 1.5px solid var(--gris-medio);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    text-align: center;
+  }
+  .acceso-publico:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  .error-msg {
+    background: var(--rojo-suave);
+    border: 1px solid rgba(192,57,43,0.25);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--rojo-oscuro);
+    margin-bottom: 20px;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    .panel-izq { display: none; }
+    .panel-der { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Panel institucional -->
+<div class="panel-izq">
+  <div class="escudo">U</div>
+
+  <div class="panel-izq-content">
+    <h1>Plataforma<br><span>de trámites</span><br>TUPA</h1>
+    <p>Gestiona tus procedimientos académicos de forma digital, sin colas ni papeles.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">30K+</div>
+      <div class="stat-label">Estudiantes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">14</div>
+      <div class="stat-label">Procedimientos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">24/7</div>
+      <div class="stat-label">Disponible</div>
+    </div>
+  </div>
+</div>
+
+<!-- Formulario -->
+<div class="panel-der">
+  <div class="form-wrap">
+    <h2 class="form-titulo">Iniciar sesión</h2>
+    <p class="form-subtitulo">Ingresa con tu correo institucional UNSAAC</p>
+
+    <div class="error-msg" id="errorMsg">
+      Credenciales incorrectas. Verifica tu correo y contraseña.
+    </div>
+
+    <div class="campo">
+      <label>Correo institucional</label>
+      <input type="email" id="correo" placeholder="nombre@unsaac.edu.pe">
+      <p class="aviso-correo">Solo se acepta correo @unsaac.edu.pe</p>
+    </div>
+
+    <div class="campo">
+      <label>Contraseña</label>
+      <input type="password" id="contrasena" placeholder="••••••••">
+    </div>
+
+    <button class="btn-ingresar" onclick="intentarLogin()">Ingresar</button>
+
+    <div class="separador">o</div>
+
+    <button class="acceso-publico" onclick="window.location.href='dashboard.html'">
+      Ver catálogo TUPA sin iniciar sesión
+    </button>
+  </div>
+</div>
+
+<script>
+function intentarLogin() {
+  const correo = document.getElementById('correo').value;
+  const err = document.getElementById('errorMsg');
+
+  if (!correo.endsWith('@unsaac.edu.pe') && correo !== '') {
+    err.textContent = 'Solo se aceptan correos institucionales @unsaac.edu.pe';
+    err.classList.add('visible');
+    return;
+  }
+
+  // Simulación de redirect al dashboard
+  window.location.href = 'dashboard.html';
+}
+
+document.getElementById('contrasena').addEventListener('keydown', e => {
+  if (e.key === 'Enter') intentarLogin();
+});
+</script>
+</body>
+</html>
