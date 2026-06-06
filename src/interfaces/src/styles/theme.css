@@ -1,0 +1,385 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* ========== COLORES INSTITUCIONALES UNSAAC ========== */
+  --unsaac-red: #8B1E1E;
+  --unsaac-red-hover: #6B1515;
+  --unsaac-red-dark: #7A1616;
+  --unsaac-gold: #D4A017;
+  --unsaac-gold-hover: #A07812;
+  --unsaac-gold-dark: #C9961A;
+  --unsaac-white: #FFFFFF;
+  --unsaac-gray-page: #F5F5F5;
+  --unsaac-gray-border: #E0E0E0;
+  --unsaac-gray-dark: #2B2B2B;
+  --unsaac-text-primary: #1F2933;
+  --unsaac-text-secondary: #6B7280;
+
+  /* ========== COLORES SEMÁNTICOS DE ESTADO ========== */
+  /* Pendiente */
+  --status-pending-bg: #F3F4F6;
+  --status-pending-text: #6B7280;
+  --status-pending-border: #D1D5DB;
+
+  /* En Revisión */
+  --status-review-bg: #DBEAFE;
+  --status-review-text: #1E40AF;
+  --status-review-border: #93C5FD;
+
+  /* Observado */
+  --status-observed-bg: #FEF3C7;
+  --status-observed-text: #92400E;
+  --status-observed-border: #FCD34D;
+
+  /* Aprobado */
+  --status-approved-bg: #D1FAE5;
+  --status-approved-text: #065F46;
+  --status-approved-border: #6EE7B7;
+
+  /* Rechazado */
+  --status-rejected-bg: #FEE2E2;
+  --status-rejected-text: #991B1B;
+  --status-rejected-border: #FCA5A5;
+
+  /* Vencido */
+  --status-overdue-bg: #FEE2E2;
+  --status-overdue-text: #7F1D1D;
+  --status-overdue-border: #F87171;
+
+  /* ========== ESTADOS ADICIONALES ========== */
+  --status-registered: #6B7280;
+  --status-evaluation: #1E40AF;
+  --status-forwarded: #06B6D4;
+  --status-finalized: #2B2B2B;
+
+  /* ========== COLORES DE ACCIÓN ========== */
+  --color-danger: #DC2626;
+  --color-danger-hover: #B91C1C;
+  --color-success: #059669;
+  --color-success-hover: #047857;
+  --color-warning: #D97706;
+  --color-warning-hover: #B45309;
+
+  /* ========== BANNERS INFORMATIVOS ========== */
+  --banner-info-bg: #DBEAFE;
+  --banner-info-text: #1E40AF;
+  --banner-info-border: #93C5FD;
+
+  --banner-success-bg: #D1FAE5;
+  --banner-success-text: #065F46;
+  --banner-success-border: #6EE7B7;
+
+  --banner-warning-bg: #FEF3C7;
+  --banner-warning-text: #92400E;
+  --banner-warning-border: #FCD34D;
+
+  --banner-error-bg: #FEE2E2;
+  --banner-error-text: #991B1B;
+  --banner-error-border: #FCA5A5;
+
+  /* ========== SEMÁFORO DE PLAZO ========== */
+  --deadline-safe: #10B981; /* ≥2 días hábiles */
+  --deadline-warning: #F59E0B; /* 1 día */
+  --deadline-critical: #EF4444; /* Vencido */
+
+  /* ========== CAMPOS DE FORMULARIO ========== */
+  --input-bg: #FFFFFF;
+  --input-bg-locked: #F9FAFB;
+  --input-border: #E5E7EB;
+  --input-border-focus: #8B1E1E;
+  --input-border-error: #DC2626;
+  --input-text-disabled: #9CA3AF;
+
+  /* ========== COMPONENTES ========== */
+  --card-bg: #FFFFFF;
+  --card-border: #E5E7EB;
+  --card-radius: 12px;
+  --card-padding: 20px;
+
+  --sidebar-width: 220px;
+  --sidebar-bg-light: #FFFFFF;
+  --sidebar-bg-dark: #2B2B2B;
+  --sidebar-item-active-border: 3px;
+  --sidebar-item-hover-bg: #FEF2F2;
+  --sidebar-item-active-bg: #FEE2E2;
+  --sidebar-admin-item-active-bg: #8B1E1E;
+  --sidebar-admin-item-hover-bg: #3D3D3D;
+
+  --topbar-height: 60px;
+
+  /* ========== TIPOGRAFÍA ========== */
+  --font-size-h1: 28px;
+  --font-size-h2: 22px;
+  --font-size-h3: 18px;
+  --font-size-h4: 16px;
+  --font-size-body: 16px;
+  --font-size-body-small: 14px;
+  --font-size-caption: 12px;
+  --font-size-label: 13px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --line-height-normal: 1.5;
+  --line-height-tight: 1.25;
+
+  /* ========== ESPACIADO ========== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ========== RADIUS ========== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 99px;
+
+  /* ========== SOMBRAS ========== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* ========== VARIABLES COMPATIBLES CON SHADCN ========== */
+  --background: #ffffff;
+  --foreground: #1F2933;
+  --card: #ffffff;
+  --card-foreground: #1F2933;
+  --popover: #ffffff;
+  --popover-foreground: #1F2933;
+  --primary: #8B1E1E;
+  --primary-foreground: #ffffff;
+  --secondary: #D4A017;
+  --secondary-foreground: #2B2B2B;
+  --muted: #F5F5F5;
+  --muted-foreground: #6B7280;
+  --accent: #D4A017;
+  --accent-foreground: #2B2B2B;
+  --destructive: #DC2626;
+  --destructive-foreground: #ffffff;
+  --border: #E0E0E0;
+  --input: transparent;
+  --ring: #8B1E1E;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: #1F2933;
+  --foreground: #ffffff;
+  --card: #2B2B2B;
+  --card-foreground: #ffffff;
+  --popover: #2B2B2B;
+  --popover-foreground: #ffffff;
+  --primary: #8B1E1E;
+  --primary-foreground: #ffffff;
+  --secondary: #D4A017;
+  --secondary-foreground: #ffffff;
+  --muted: #3D3D3D;
+  --muted-foreground: #9CA3AF;
+  --accent: #D4A017;
+  --accent-foreground: #ffffff;
+  --destructive: #DC2626;
+  --destructive-foreground: #ffffff;
+  --border: #3D3D3D;
+  --input: #3D3D3D;
+  --ring: #8B1E1E;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* ========== TIPOGRAFÍA BASE ========== */
+  html {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--unsaac-text-primary);
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--unsaac-text-primary);
+  }
+
+  h3 {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    color: var(--unsaac-text-primary);
+  }
+
+  h4 {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    color: var(--unsaac-text-primary);
+  }
+
+  label {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    color: var(--unsaac-text-primary);
+  }
+
+  button {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+  }
+
+  input, textarea, select {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+  }
+
+  p {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    color: var(--unsaac-text-primary);
+  }
+
+  .text-small {
+    font-size: var(--font-size-body-small);
+  }
+
+  .caption {
+    font-size: var(--font-size-caption);
+    color: var(--unsaac-text-secondary);
+  }
+}
+
+/* ========== CLASES UTILITARIAS PERSONALIZADAS ========== */
+@layer utilities {
+  /* Campos bloqueados */
+  .input-locked {
+    background-color: var(--input-bg-locked);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .input-locked:focus {
+    outline: none;
+    border-color: var(--input-border);
+  }
+
+  /* Badges de estado */
+  .badge-pending {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending-text);
+    border: 1px solid var(--status-pending-border);
+  }
+
+  .badge-review {
+    background-color: var(--status-review-bg);
+    color: var(--status-review-text);
+    border: 1px solid var(--status-review-border);
+  }
+
+  .badge-observed {
+    background-color: var(--status-observed-bg);
+    color: var(--status-observed-text);
+    border: 1px solid var(--status-observed-border);
+  }
+
+  .badge-approved {
+    background-color: var(--status-approved-bg);
+    color: var(--status-approved-text);
+    border: 1px solid var(--status-approved-border);
+  }
+
+  .badge-rejected {
+    background-color: var(--status-rejected-bg);
+    color: var(--status-rejected-text);
+    border: 1px solid var(--status-rejected-border);
+  }
+
+  .badge-overdue {
+    background-color: var(--status-overdue-bg);
+    color: var(--status-overdue-text);
+    border: 1px solid var(--status-overdue-border);
+  }
+
+  /* Banners informativos */
+  .banner-info {
+    background-color: var(--banner-info-bg);
+    color: var(--banner-info-text);
+    border: 1px solid var(--banner-info-border);
+  }
+
+  .banner-success {
+    background-color: var(--banner-success-bg);
+    color: var(--banner-success-text);
+    border: 1px solid var(--banner-success-border);
+  }
+
+  .banner-warning {
+    background-color: var(--banner-warning-bg);
+    color: var(--banner-warning-text);
+    border: 1px solid var(--banner-warning-border);
+  }
+
+  .banner-error {
+    background-color: var(--banner-error-bg);
+    color: var(--banner-error-text);
+    border: 1px solid var(--banner-error-border);
+  }
+
+  /* Semáforo de plazo */
+  .deadline-safe {
+    color: var(--deadline-safe);
+  }
+
+  .deadline-warning {
+    color: var(--deadline-warning);
+  }
+
+  .deadline-critical {
+    color: var(--deadline-critical);
+  }
+}
