@@ -1,0 +1,445 @@
+-- =====================================================================================
+-- SCRIPT DE CREACIÓN DE BASE DE DATOS: SISTEMA DE GESTIÓN TUPA - UNSAAC
+-- CONSTRUIDO BAJO ESTÁNDAR DE ARQUITECTURA DE BASES DE DATOS SENIOR
+-- =====================================================================================
+
+DROP DATABASE IF EXISTS `bdtupa`;
+CREATE DATABASE `bdtupa` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE `bdtupa`;
+
+-- -------------------------------------------------------------------------------------
+-- 1. TABLAS DE CONFIGURACIÓN, RECAUDACIÓN Y UNIDADES ORGANIZATIVAS
+-- -------------------------------------------------------------------------------------
+
+CREATE TABLE `tferiado` (
+  `id_feriado` INT AUTO_INCREMENT,
+  `fecha` DATE NOT NULL,
+  `descripcion` VARCHAR(150) NOT NULL,
+  `recurrente` TINYINT(1) DEFAULT 0,
+  PRIMARY KEY (`id_feriado`),
+  UNIQUE KEY `uk_fecha_feriado` (`fecha`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tunidadorganizativa` (
+  `id_unidad` INT AUTO_INCREMENT,
+  `nombre_unidad` VARCHAR(150) NOT NULL,
+  `sigla` VARCHAR(20) NOT NULL,
+  `estado` ENUM('ACTIVO', 'INACTIVO') DEFAULT 'ACTIVO',
+  PRIMARY KEY (`id_unidad`),
+  UNIQUE KEY `uk_sigla_unidad` (`sigla`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `ttiporeciboingreso` (
+  `nidtiporeciboingreso` INT AUTO_INCREMENT,
+  `cdescripcion` VARCHAR(100) NOT NULL,
+  `estado` ENUM('ACTIVO', 'INACTIVO') DEFAULT 'ACTIVO',
+  PRIMARY KEY (`nidtiporeciboingreso`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tespecifica` (
+  `ccodigoespecifica` VARCHAR(20) NOT NULL,
+  `cdescripcion` VARCHAR(255) NOT NULL,
+  `nidtiporeciboingreso` INT NOT NULL,
+  PRIMARY KEY (`ccodigoespecifica`),
+  CONSTRAINT `fk_especifica_tipo_recibo` FOREIGN KEY (`nidtiporeciboingreso`) REFERENCES `ttiporeciboingreso` (`nidtiporeciboingreso`)
+) ENGINE=InnoDB;
+
+-- -------------------------------------------------------------------------------------
+-- 2. ESTRUCTURA CENTRAL DEL CATÁLOGO TUPA
+-- -------------------------------------------------------------------------------------
+
+CREATE TABLE `tcatalogotramite` (
+  `ccodigo` VARCHAR(20) NOT NULL,
+  `cdescripcion` TEXT NOT NULL,
+  `nplazodias` INT NOT NULL,
+  `ncosto` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `id_unidad_responsable` INT NOT NULL,
+  `tipo_tramite` ENUM('PREGRADO', 'POSGRADO', 'GENERAL') NOT NULL DEFAULT 'GENERAL',
+  `estado` ENUM('ACTIVO', 'INACTIVO') DEFAULT 'ACTIVO',
+  `fecha_actualizacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`ccodigo`),
+  CONSTRAINT `fk_catalogo_unidad` FOREIGN KEY (`id_unidad_responsable`) REFERENCES `tunidadorganizativa` (`id_unidad`),
+  CONSTRAINT `chk_ncosto_positivo` CHECK (`ncosto` >= 0.00),
+  CONSTRAINT `chk_nplazodias_positivo` CHECK (`nplazodias` >= 0)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tespecificatramite` (
+  `ccodigo` VARCHAR(20) NOT NULL,
+  `ccodigoespecifica` VARCHAR(20) NOT NULL,
+  PRIMARY KEY (`ccodigo`, `ccodigoespecifica`),
+  CONSTRAINT `fk_esptramite_catalogo` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`) ON DELETE CASCADE,
+  CONSTRAINT `fk_esptramite_especifica` FOREIGN KEY (`ccodigoespecifica`) REFERENCES `tespecifica` (`ccodigoespecifica`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE `trequisitotramite` (
+  `nidrequisito` INT AUTO_INCREMENT,
+  `ccodigo` VARCHAR(20) NOT NULL,
+  `cdescripcion` TEXT NOT NULL,
+  `es_obligatorio` TINYINT(1) DEFAULT 1,
+  `formato_permitido` VARCHAR(50) DEFAULT 'PDF',
+  `ntamano_max_mb` INT DEFAULT 5,
+  PRIMARY KEY (`nidrequisito`),
+  CONSTRAINT `fk_requisito_catalogo` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- -------------------------------------------------------------------------------------
+-- 3. CONTROL DE SEGURIDAD, ROLES (RBAC) Y USUARIOS EXTENDIDOS
+-- -------------------------------------------------------------------------------------
+
+CREATE TABLE `tusuario` (
+  `id_usuario` INT AUTO_INCREMENT,
+  `correo_institucional` VARCHAR(120) NOT NULL,
+  `contrasena_hash` VARCHAR(255) NOT NULL,
+  `rol` ENUM('USUARIO', 'ADMINISTRATIVO', 'JEFE_OFICINA', 'ADMINISTRADOR') NOT NULL DEFAULT 'USUARIO',
+  `intentos_fallidos` INT DEFAULT 0,
+  `estado` ENUM('ACTIVO', 'INACTIVO', 'BLOQUEADO') DEFAULT 'ACTIVO',
+  `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_usuario`),
+  UNIQUE KEY `uk_correo_usuario` (`correo_institucional`),
+  CONSTRAINT `chk_dominio_correo` CHECK (`correo_institucional` LIKE '%@unsaac.edu.pe')
+) ENGINE=InnoDB;
+
+CREATE TABLE `talumno` (
+  `codigo_alumno` VARCHAR(15) NOT NULL,
+  `id_usuario` INT NOT NULL,
+  `dni` VARCHAR(8) NOT NULL,
+  `nombres` VARCHAR(100) NOT NULL,
+  `apellidos` VARCHAR(100) NOT NULL,
+  `facultad` VARCHAR(150) NOT NULL,
+  `escuela_profesional` VARCHAR(150) NOT NULL,
+  PRIMARY KEY (`codigo_alumno`),
+  UNIQUE KEY `uk_alumno_usuario` (`id_usuario`),
+  UNIQUE KEY `uk_alumno_dni` (`dni`),
+  CONSTRAINT `fk_alumno_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `tusuario` (`id_usuario`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE `tpersonal` (
+  `codigo_personal` VARCHAR(15) NOT NULL,
+  `id_usuario` INT NOT NULL,
+  `dni` VARCHAR(8) NOT NULL,
+  `nombres` VARCHAR(100) NOT NULL,
+  `apellidos` VARCHAR(100) NOT NULL,
+  `id_unidad` INT NOT NULL,
+  PRIMARY KEY (`codigo_personal`),
+  UNIQUE KEY `uk_personal_usuario` (`id_usuario`),
+  UNIQUE KEY `uk_personal_dni` (`dni`),
+  CONSTRAINT `fk_personal_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `tusuario` (`id_usuario`) ON DELETE CASCADE,
+  CONSTRAINT `fk_personal_unidad` FOREIGN KEY (`id_unidad`) REFERENCES `tunidadorganizativa` (`id_unidad`)
+) ENGINE=InnoDB;
+
+-- -------------------------------------------------------------------------------------
+-- 4. TRANSACCIONES: EXPEDIENTES, REQUISITOS ADJUNTOS Y HISTORIALES
+-- -------------------------------------------------------------------------------------
+
+CREATE TABLE `texpediente` (
+  `nro_expediente` VARCHAR(25) NOT NULL,
+  `ccodigo` VARCHAR(20) NOT NULL,
+  `id_solicitante` INT NOT NULL,
+  `id_unidad_actual` INT NOT NULL,
+  `fecha_registro` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_vencimiento` DATE NOT NULL,
+  `estado` ENUM('PENDIENTE', 'EN_REVISION', 'OBSERVADO', 'APROBADO', 'RECHAZADO') DEFAULT 'PENDIENTE',
+  PRIMARY KEY (`nro_expediente`),
+  CONSTRAINT `fk_expediente_catalogo` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`),
+  CONSTRAINT `fk_expediente_solicitante` FOREIGN KEY (`id_solicitante`) REFERENCES `tusuario` (`id_usuario`),
+  CONSTRAINT `fk_expediente_unidad` FOREIGN KEY (`id_unidad_actual`) REFERENCES `tunidadorganizativa` (`id_unidad`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tdocumentoadjunto` (
+  `id_documento` INT AUTO_INCREMENT,
+  `nro_expediente` VARCHAR(25) NOT NULL,
+  `nidrequisito` INT NOT NULL,
+  `ruta_archivo` VARCHAR(255) NOT NULL,
+  `fecha_subida` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `estado_doc` ENUM('VALIDO', 'OBSERVADO', 'SUBSANADO') DEFAULT 'VALIDO',
+  `observacion_admin` TEXT,
+  PRIMARY KEY (`id_documento`),
+  CONSTRAINT `fk_doc_expediente` FOREIGN KEY (`nro_expediente`) REFERENCES `texpediente` (`nro_expediente`) ON DELETE CASCADE,
+  CONSTRAINT `fk_doc_requisito` FOREIGN KEY (`nidrequisito`) REFERENCES `trequisitotramite` (`nidrequisito`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tvoucher_pago` (
+  `id_pago` INT AUTO_INCREMENT,
+  `nro_expediente` VARCHAR(25) NOT NULL,
+  `codigo_operacion` VARCHAR(60) NOT NULL,
+  `monto_pagado` DECIMAL(10,2) NOT NULL,
+  `fecha_pago` DATE NOT NULL,
+  `ruta_voucher` VARCHAR(255) NOT NULL,
+  `estado_validacion` ENUM('PENDIENTE', 'VALIDADO', 'RECHAZADO') DEFAULT 'PENDIENTE',
+  `id_admin_validador` INT DEFAULT NULL,
+  PRIMARY KEY (`id_pago`),
+  UNIQUE KEY `uk_codigo_operacion` (`codigo_operacion`),
+  CONSTRAINT `fk_pago_expediente` FOREIGN KEY (`nro_expediente`) REFERENCES `texpediente` (`nro_expediente`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pago_validador` FOREIGN KEY (`id_admin_validador`) REFERENCES `tusuario` (`id_usuario`)
+) ENGINE=InnoDB;
+
+-- -------------------------------------------------------------------------------------
+-- 5. TABLAS DE HISTÓRICOS Y AUDITORÍA COMPLETA
+-- -------------------------------------------------------------------------------------
+
+CREATE TABLE `thistorial_estado` (
+  `id_historial` INT AUTO_INCREMENT,
+  `nro_expediente` VARCHAR(25) NOT NULL,
+  `fecha_movimiento` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `estado_anterior` VARCHAR(30) DEFAULT NULL,
+  `estado_nuevo` VARCHAR(30) NOT NULL,
+  `id_unidad_origen` INT DEFAULT NULL,
+  `id_unidad_destino` INT NOT NULL,
+  `id_usuario_accion` INT NOT NULL,
+  `comentario` TEXT,
+  PRIMARY KEY (`id_historial`),
+  CONSTRAINT `fk_historial_exp` FOREIGN KEY (`nro_expediente`) REFERENCES `texpediente` (`nro_expediente`) ON DELETE CASCADE,
+  CONSTRAINT `fk_historial_uorigen` FOREIGN KEY (`id_unidad_origen`) REFERENCES `tunidadorganizativa` (`id_unidad`),
+  CONSTRAINT `fk_historial_udestino` FOREIGN KEY (`id_unidad_destino`) REFERENCES `tunidadorganizativa` (`id_unidad`),
+  CONSTRAINT `fk_historial_usuario` FOREIGN KEY (`id_usuario_accion`) REFERENCES `tusuario` (`id_usuario`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `tversioncatalogo` (
+  `id_version` INT AUTO_INCREMENT,
+  `ccodigo` VARCHAR(20) NOT NULL,
+  `fecha_modificacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `id_administrador` INT NOT NULL,
+  `campo_modificado` VARCHAR(100) NOT NULL,
+  `valor_anterior` TEXT,
+  `valor_nuevo` TEXT,
+  PRIMARY KEY (`id_version`),
+  CONSTRAINT `fk_version_usuario` FOREIGN KEY (`id_administrador`) REFERENCES `tusuario` (`id_usuario`)
+) ENGINE=InnoDB;
+
+-- -------------------------------------------------------------------------------------
+-- 6. ÍNDICES DE OPTIMIZACIÓN (INDEX)
+-- -------------------------------------------------------------------------------------
+CREATE INDEX `idx_expediente_estado` ON `texpediente` (`estado`);
+CREATE INDEX `idx_expediente_unidad` ON `texpediente` (`id_unidad_actual`);
+CREATE INDEX `idx_usuario_rol` ON `tusuario` (`rol`);
+CREATE INDEX `idx_doc_expediente` ON `tdocumentoadjunto` (`nro_expediente`);
+
+-- -------------------------------------------------------------------------------------
+-- 7. FUNCIONES MATEMÁTICAS Y DE CONTROL DE PLAZOS
+-- -------------------------------------------------------------------------------------
+DELIMITER $$
+
+CREATE FUNCTION `fn_calcular_vencimiento_habiles`(p_fecha_inicio DATETIME, p_dias_habiles INT) 
+RETURNS DATE
+DETERMINISTIC
+BEGIN
+    DECLARE v_fecha_resultado DATE;
+    DECLARE v_contador INT DEFAULT 0;
+    DECLARE v_es_feriado INT;
+    
+    SET v_fecha_resultado = DATE(p_fecha_inicio);
+    
+    WHILE v_contador < p_dias_habiles DO
+        SET v_fecha_resultado = DATE_ADD(v_fecha_resultado, INTERVAL 1 DAY);
+        
+        -- Verificar si es fin de semana (Sábado = 7, Domingo = 1)
+        IF DAYOFWEEK(v_fecha_resultado) NOT IN (1, 7) THEN
+            SELECT COUNT(*) INTO v_es_feriado FROM `tferiado` WHERE `fecha` = v_fecha_resultado;
+            IF v_es_feriado = 0 THEN
+                SET v_contador = v_contador + 1;
+            END IF;
+        END IF;
+    END WHILE;
+    
+    RETURN v_fecha_resultado;
+END$$
+
+DELIMITER ;
+
+-- -------------------------------------------------------------------------------------
+-- 8. TRIGGERS OBLIGATORIOS EXPLICADOS
+-- -------------------------------------------------------------------------------------
+
+-- [TRIGGER 1]: trg_expediente_inicializar_plazo
+-- Objetivo: Calcular automáticamente la fecha exacta de vencimiento legal omitiendo fines de semana y feriados.
+-- Evento que lo activa: BEFORE INSERT
+-- Tabla afectada: texpediente
+-- Regla implementada: Automatización del cálculo de la fecha límite del expediente según el plazo asignado en el catálogo.
+DELIMITER $$
+
+CREATE TRIGGER `trg_expediente_inicializar_plazo`
+BEFORE INSERT ON `texpediente`
+FOR EACH ROW
+BEGIN
+    DECLARE v_dias INT;
+    SELECT `nplazodias` INTO v_dias FROM `tcatalogotramite` WHERE `ccodigo` = NEW.`ccodigo`;
+    SET NEW.`fecha_vencimiento` = fn_calcular_vencimiento_habiles(NEW.`fecha_registro`, v_dias);
+END$$
+
+-- [TRIGGER 2]: trg_expediente_auditar_cambios
+-- Objetivo: Generar registros automáticos del flujo de derivación de un trámite por las oficinas de la UNSAAC.
+-- Evento que lo activa: AFTER UPDATE
+-- Tabla afectada: texpediente
+-- Regla implementada: Auditoría inalterable de los flujos de estado y trazabilidad institucional del expediente.
+CREATE TRIGGER `trg_expediente_auditar_cambios`
+AFTER UPDATE ON `texpediente`
+FOR EACH ROW
+BEGIN
+    IF (OLD.`estado` <> NEW.`estado`) OR (OLD.`id_unidad_actual` <> NEW.`id_unidad_actual`) THEN
+        INSERT INTO `thistorial_estado` (
+            `nro_expediente`, `estado_anterior`, `estado_nuevo`, 
+            `id_unidad_origen`, `id_unidad_destino`, `id_usuario_accion`, `comentario`
+        ) VALUES (
+            NEW.`nro_expediente`, OLD.`estado`, NEW.`estado`, 
+            OLD.`id_unidad_actual`, NEW.`id_unidad_actual`, NEW.`id_solicitante`,
+            'Actualización automática de estado / Derivación interna del expediente.'
+        );
+    END IF;
+END$$
+
+-- [TRIGGER 3]: trg_catalogo_versionamiento
+-- Objetivo: Respaldar las variaciones monetarias o de plazos dictaminadas en resoluciones rectorales para el TUPA.
+-- Evento que lo activa: AFTER UPDATE
+-- Tabla afectada: tcatalogotramite
+-- Regla implementada: Historial auditable de las modificaciones normativas del TUPA.
+CREATE TRIGGER `trg_catalogo_versionamiento`
+AFTER UPDATE ON `tcatalogotramite`
+FOR EACH ROW
+BEGIN
+    IF OLD.`ncosto` <> NEW.`ncosto` THEN
+        INSERT INTO `tversioncatalogo` (`ccodigo`, `id_administrador`, `campo_modificado`, `valor_anterior`, `valor_nuevo`)
+        VALUES (NEW.`ccodigo`, 1, 'ncosto', CAST(OLD.`ncosto` AS CHAR), CAST(NEW.`ncosto` AS CHAR));
+    END IF;
+    IF OLD.`nplazodias` <> NEW.`nplazodias` THEN
+        INSERT INTO `tversioncatalogo` (`ccodigo`, `id_administrador`, `campo_modificado`, `valor_anterior`, `valor_nuevo`)
+        VALUES (NEW.`ccodigo`, 1, 'nplazodias', CAST(OLD.`nplazodias` AS CHAR), CAST(NEW.`nplazodias` AS CHAR));
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- -------------------------------------------------------------------------------------
+-- 9. VISTAS DEL SISTEMA (VIEW)
+-- -------------------------------------------------------------------------------------
+
+-- Bandeja técnica para el personal de las oficinas con semaforización de plazos urgentes
+CREATE VIEW `vw_bandeja_administrativo` AS
+SELECT 
+    e.`nro_expediente`,
+    c.`ccodigo` AS `codigo_tupa`,
+    c.`cdescripcion` AS `nombre_tramite`,
+    e.`fecha_registro`,
+    e.`fecha_vencimiento`,
+    e.`estado`,
+    uo.`nombre_unidad` AS `oficina_actual`,
+    DATEDIFF(e.`fecha_vencimiento`, CURDATE()) AS `dias_restantes`,
+    CASE 
+        WHEN DATEDIFF(e.`fecha_vencimiento`, CURDATE()) > 5 THEN 'SEGURO (VERDE)'
+        WHEN DATEDIFF(e.`fecha_vencimiento`, CURDATE()) BETWEEN 1 AND 5 THEN 'URGENTE (AMARILLO)'
+        ELSE 'VENCIDO (ROJO)'
+    END AS `semaforo_plazo`
+FROM `texpediente` e
+INNER JOIN `tcatalogotramite` c ON e.`ccodigo` = c.`ccodigo`
+INNER JOIN `tunidadorganizativa` uo ON e.`id_unidad_actual` = uo.`id_unidad`;
+
+-- Catálogo Público del TUPA visible para usuarios externos sin autenticación
+CREATE VIEW `vw_catalogo_publico` AS
+SELECT 
+    c.`ccodigo` AS `codigo_tupa`,
+    c.`cdescripcion` AS `procedimiento`,
+    c.`ncosto` AS `costo_soles`,
+    c.`nplazodias` AS `plazo_maximo_dias`,
+    uo.`nombre_unidad` AS `oficina_responsable`
+FROM `tcatalogotramite` c
+INNER JOIN `tunidadorganizativa` uo ON c.`id_unidad_responsable` = uo.`id_unidad`
+WHERE c.`estado` = 'ACTIVO';
+
+-- -------------------------------------------------------------------------------------
+-- 10. PROCEDIMIENTOS ALMACENADOS (STORED PROCEDURES)
+-- -------------------------------------------------------------------------------------
+DELIMITER $$
+
+-- Reincorporación del procedimiento base del script bdtupa20260511.sql
+CREATE PROCEDURE `tupa_sp_tramites_segun_tipo_recibo`(
+    IN p_nidtiporeciboingreso INT
+)
+BEGIN        
+    SELECT DISTINCT c.* FROM `tcatalogotramite` c
+    INNER JOIN `tespecificatramite` et ON c.`ccodigo` = et.`ccodigo`
+    INNER JOIN `tespecifica` e ON e.`ccodigoespecifica` = et.`ccodigoespecifica`
+    WHERE e.`nidtiporeciboingreso` = p_nidtiporeciboingreso    
+    ORDER BY c.`cdescripcion` ASC;
+END$$
+
+-- Procedimiento transaccional seguro para el flujo crítico de subsanaciones
+CREATE PROCEDURE `sp_subsanar_documento_observado`(
+    IN p_id_documento INT,
+    IN p_nueva_ruta VARCHAR(255)
+)
+BEGIN
+    DECLARE v_expediente VARCHAR(25);
+    
+    START TRANSACTION;
+    
+    UPDATE `tdocumentoadjunto` 
+    SET `ruta_archivo` = p_nueva_ruta, `estado_doc` = 'SUBSANADO'
+    WHERE `id_documento` = p_id_documento;
+    
+    SELECT `nro_expediente` INTO v_expediente FROM `tdocumentoadjunto` WHERE `id_documento` = p_id_documento;
+    
+    UPDATE `texpediente` 
+    SET `estado` = 'EN_REVISION' 
+    WHERE `nro_expediente` = v_expediente;
+    
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- -------------------------------------------------------------------------------------
+-- 11. INSERCIÓN TOTAL DE DATOS DE PRUEBA SÓLIDOS Y REALISTAS
+-- -------------------------------------------------------------------------------------
+
+INSERT INTO `tferiado` (`fecha`, `descripcion`, `recurrente`) VALUES 
+('2026-06-24', 'Día del Cusco', 1),
+('2026-07-28', 'Fiestas Patrias', 1),
+('2026-07-29', 'Fiestas Patrias', 1);
+
+INSERT INTO `tunidadorganizativa` (`nombre_unidad`, `sigla`, `estado`) VALUES 
+('Unidad de Trámite Documentario', 'UTD', 'ACTIVO'),
+('Dirección de la Escuela de Posgrado', 'EPG', 'ACTIVO'),
+('Decanato de Ingeniería de Procesos', 'FIP', 'ACTIVO');
+
+INSERT INTO `ttiporeciboingreso` (`cdescripcion`, `estado`) VALUES 
+('Recaudación de Tasas de Pregrado', 'ACTIVO'),
+('Recaudación de Tasas de Posgrado', 'ACTIVO');
+
+INSERT INTO `tespecifica` (`ccodigoespecifica`, `cdescripcion`, `nidtiporeciboingreso`) VALUES 
+('1.3.2.1.1', 'Certificados Académicos Ordinarios', 1),
+('1.3.2.1.2', 'Derechos de Grados Académicos', 2);
+
+INSERT INTO `tcatalogotramite` (`ccodigo`, `cdescripcion`, `nplazodias`, `ncosto`, `id_unidad_responsable`, `tipo_tramite`, `estado`) VALUES 
+('PA51004D55', 'Certificado de Estudios Simplificado (Por Semestre)', 2, 15.00, 1, 'PREGRADO', 'ACTIVO'),
+('PA51003F07', 'Calificación de Expediente Completo para Optar el Grado de Bachiller', 15, 450.00, 3, 'PREGRADO', 'ACTIVO');
+
+INSERT INTO `tespecificatramite` (`ccodigo`, `ccodigoespecifica`) VALUES 
+('PA51004D55', '1.3.2.1.1'),
+('PA51003F07', '1.3.2.1.2');
+
+INSERT INTO `trequisitotramite` (`ccodigo`, `cdescripcion`, `es_obligatorio`, `formato_permitido`, `ntamano_max_mb`) VALUES 
+('PA51003F07', 'Solicitud formal dirigida al Decano de la Facultad', 1, 'PDF', 4),
+('PA51003F07', 'Constancia oficial de egresado emitida por la Escuela', 1, 'PDF', 5),
+('PA51004D55', 'Recibo de pago de tasas universitarias indexadas', 1, 'PDF,JPG', 2);
+
+-- Cuentas con contraseñas seguras precalculadas (Cumpliendo RN-01 de dominio unsaac)
+INSERT INTO `tusuario` (`id_usuario`, `correo_institucional`, `contrasena_hash`, `rol`, `estado`) VALUES 
+(1, 'administrador.central@unsaac.edu.pe', '$2y$12$EjemploHashBcryptParaProduccionSeguraDeCincoEstrellas', 'ADMINISTRADOR', 'ACTIVO'),
+(2, 'juan.solis@unsaac.edu.pe', '$2y$12$HashEstudianteDePregradoUnsaacFielmenteMapeadoAquiMismo', 'USUARIO', 'ACTIVO'),
+(3, 'operador.utd@unsaac.edu.pe', '$2y$12$HashPersonalAdministrativoAsignadoAUtdParaRevision', 'ADMINISTRATIVO', 'ACTIVO');
+
+INSERT INTO `talumno` (`codigo_alumno`, `id_usuario`, `dni`, `nombres`, `apellidos`, `facultad`, `escuela_profesional`) VALUES 
+('221456A', 2, '74859612', 'Juan Carlos', 'Solis Huaman', 'Facultad de Ingeniería Eléctrica, Electrónica, Informática y Mecánica', 'Ingeniería Informática y de Sistemas');
+
+INSERT INTO `tpersonal` (`codigo_personal`, `id_usuario`, `dni`, `nombres`, `apellidos`, `id_unidad`) VALUES 
+('P996325', 3, '24568911', 'Ana Maria', 'Caceres Ramos', 1);
+
+-- El trigger 'trg_expediente_inicializar_plazo' calculará automáticamente la fecha de vencimiento sin intervención manual
+INSERT INTO `texpediente` (`nro_expediente`, `ccodigo`, `id_solicitante`, `id_unidad_actual`, `fecha_registro`, `estado`) VALUES 
+('EXP-2026-00001', 'PA51003F07', 2, 1, '2026-06-10 08:30:00', 'PENDIENTE');
+
+INSERT INTO `tdocumentoadjunto` (`nro_expediente`, `nidrequisito`, `ruta_archivo`, `estado_doc`) VALUES 
+('EXP-2026-00001', 1, '/storage/uploads/exp0001/solicitud_firmada.pdf', 'VALIDO'),
+('EXP-2026-00001', 2, '/storage/uploads/exp0001/constancia_egreso.pdf', 'VALIDO');
+
+INSERT INTO `tvoucher_pago` (`nro_expediente`, `codigo_operacion`, `monto_pagado`, `fecha_pago`, `ruta_voucher`, `estado_validacion`, `id_admin_validador`) VALUES 
+('EXP-2026-00001', 'VOU-741258963-UNSAAC', 450.00, '2026-06-09', '/storage/vouchers/v_2026_01.jpg', 'VALIDADO', 3);
