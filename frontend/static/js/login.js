@@ -7,29 +7,63 @@ const DOMINIO_INSTITUCIONAL = "@unsaac.edu.pe";
 // protegido que se agregue en Sprint 2 necesitara otra estrategia (sessionStorage
 // o mantener todo en una sola pagina tipo SPA).
 let tokenEnMemoria = null;
+let intentosFallidos = 0;
 
 const form = document.getElementById("form-login");
 const campoCorreo = document.getElementById("correo");
+const campoContrasena = document.getElementById("contrasena");
 const errorCorreo = document.getElementById("error-correo");
 const errorLogin = document.getElementById("error-login");
 const btnLogin = document.getElementById("btn-login");
+const contadorIntentos = document.getElementById("contador-intentos");
+const btnVerContrasena = document.getElementById("btn-ver-contrasena");
+const iconoVerContrasena = document.getElementById("icono-ver-contrasena");
 
 function correoTieneDominioValido(correo) {
   return correo.trim().toLowerCase().endsWith(DOMINIO_INSTITUCIONAL);
 }
 
-campoCorreo.addEventListener("blur", () => {
+function actualizarEstiloCorreo() {
   const correo = campoCorreo.value.trim();
 
-  if (correo && !correoTieneDominioValido(correo)) {
-    campoCorreo.classList.add("campo-invalido");
-    errorCorreo.textContent = `El correo debe terminar en ${DOMINIO_INSTITUCIONAL}`;
-    errorCorreo.hidden = false;
-  } else {
-    campoCorreo.classList.remove("campo-invalido");
+  if (!correo) {
+    campoCorreo.classList.remove("campo-invalido", "campo-valido");
     errorCorreo.hidden = true;
+    return;
   }
+
+  if (correoTieneDominioValido(correo)) {
+    campoCorreo.classList.remove("campo-invalido");
+    campoCorreo.classList.add("campo-valido");
+    errorCorreo.hidden = true;
+  } else {
+    campoCorreo.classList.remove("campo-valido");
+    campoCorreo.classList.add("campo-invalido");
+    errorCorreo.textContent = `Solo se aceptan correos ${DOMINIO_INSTITUCIONAL}`;
+    errorCorreo.hidden = false;
+  }
+}
+
+campoCorreo.addEventListener("input", actualizarEstiloCorreo);
+
+btnVerContrasena.addEventListener("click", () => {
+  const mostrando = campoContrasena.type === "text";
+  campoContrasena.type = mostrando ? "password" : "text";
+  iconoVerContrasena.classList.toggle("bi-eye", mostrando);
+  iconoVerContrasena.classList.toggle("bi-eye-slash", !mostrando);
 });
+
+function mostrarBanner(tipo, mensaje) {
+  errorLogin.className = "alert d-flex align-items-start gap-2 mb-4";
+  const estilos = {
+    error: "alert-danger",
+    bloqueo: "alert-warning",
+    conexion: "alert-secondary",
+  };
+  errorLogin.classList.add(estilos[tipo] || "alert-danger");
+  errorLogin.innerHTML = `<i class="bi bi-exclamation-circle mt-1"></i><span>${mensaje}</span>`;
+  errorLogin.hidden = false;
+}
 
 function redirigirSegunRol(rol) {
   if (rol === "ESTUDIANTE") {
@@ -44,17 +78,15 @@ form.addEventListener("submit", async (evento) => {
   errorLogin.hidden = true;
 
   const correo = campoCorreo.value.trim();
-  const contrasena = document.getElementById("contrasena").value;
+  const contrasena = campoContrasena.value;
 
   if (!correoTieneDominioValido(correo)) {
-    campoCorreo.classList.add("campo-invalido");
-    errorCorreo.textContent = `El correo debe terminar en ${DOMINIO_INSTITUCIONAL}`;
-    errorCorreo.hidden = false;
+    actualizarEstiloCorreo();
     return;
   }
 
   btnLogin.disabled = true;
-  btnLogin.textContent = "Ingresando...";
+  btnLogin.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Ingresando...`;
 
   try {
     const respuesta = await fetch(`${API_BASE}/api/auth/login`, {
@@ -66,18 +98,32 @@ form.addEventListener("submit", async (evento) => {
     const datos = await respuesta.json();
 
     if (!respuesta.ok) {
-      errorLogin.textContent = datos.error || "No se pudo iniciar sesión.";
-      errorLogin.hidden = false;
+      const bloqueado = (datos.error || "").toLowerCase().includes("bloqueada");
+      mostrarBanner(bloqueado ? "bloqueo" : "error", datos.error || "No se pudo iniciar sesión.");
+
+      if (bloqueado) {
+        campoCorreo.disabled = true;
+        campoContrasena.disabled = true;
+        btnVerContrasena.disabled = true;
+        contadorIntentos.hidden = true;
+      } else if (respuesta.status === 401) {
+        intentosFallidos += 1;
+        if (intentosFallidos < 5) {
+          contadorIntentos.textContent = `Intento ${intentosFallidos} de 5`;
+          contadorIntentos.hidden = false;
+        }
+      }
       return;
     }
 
     tokenEnMemoria = datos.token;
     redirigirSegunRol(datos.rol);
   } catch (error) {
-    errorLogin.textContent = "Error de conexión. Intente nuevamente.";
-    errorLogin.hidden = false;
+    mostrarBanner("conexion", "Error de conexión. Intente nuevamente.");
   } finally {
-    btnLogin.disabled = false;
-    btnLogin.textContent = "Ingresar";
+    if (!campoCorreo.disabled) {
+      btnLogin.disabled = false;
+      btnLogin.textContent = "Ingresar";
+    }
   }
 });

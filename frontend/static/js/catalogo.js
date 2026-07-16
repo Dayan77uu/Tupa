@@ -7,6 +7,7 @@ const estadoCarga = document.getElementById("estado-carga");
 const sinResultados = document.getElementById("sin-resultados");
 const contenedorSugerencias = document.getElementById("contenedor-sugerencias");
 const contenedorResultados = document.getElementById("contenedor-resultados");
+const contadorResultados = document.getElementById("contador-resultados");
 
 let temporizadorDebounce = null;
 
@@ -26,14 +27,28 @@ async function cargarFiltros() {
   }
 }
 
+function esGratuito(costoResumen) {
+  return /^S\/\s*0(\.00)?$/.test((costoResumen || "").trim());
+}
+
 function tarjetaHtml(tramite) {
+  const badgeCosto = esGratuito(tramite.costo_resumen)
+    ? `<span class="badge badge-gratuito">Gratuito</span>`
+    : `<span class="badge badge-costo">${tramite.costo_resumen}</span>`;
+
   return `
-    <div class="col-md-4">
-      <div class="card h-100 tarjeta-tramite" data-codigo="${tramite.codigo}">
-        <div class="card-body">
-          <span class="badge bg-light text-dark mb-2">${tramite.codigo}</span>
-          <h2 class="h6 card-title">${tramite.nombre}</h2>
-          <p class="card-text text-muted mb-0">${tramite.costo_resumen}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 tarjeta-tramite">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <span class="badge border text-dark bg-white">${tramite.codigo}</span>
+            ${badgeCosto}
+          </div>
+          <h3 class="h6 mb-3">${tramite.nombre}</h3>
+          <div class="mt-auto d-flex gap-2">
+            <a href="ficha.html?codigo=${encodeURIComponent(tramite.codigo)}" class="btn btn-institucional btn-sm flex-fill">Ver detalle</a>
+            <a href="login.html" class="btn btn-outline-secondary btn-sm flex-fill">Solicitar</a>
+          </div>
         </div>
       </div>
     </div>
@@ -42,13 +57,6 @@ function tarjetaHtml(tramite) {
 
 function renderizarResultados(resultados) {
   contenedorResultados.innerHTML = resultados.map(tarjetaHtml).join("");
-
-  contenedorResultados.querySelectorAll(".tarjeta-tramite").forEach((tarjeta) => {
-    tarjeta.addEventListener("click", () => {
-      const codigo = tarjeta.dataset.codigo;
-      window.location.href = `ficha.html?codigo=${encodeURIComponent(codigo)}`;
-    });
-  });
 }
 
 function renderizarSugerencias(sugerencias) {
@@ -58,17 +66,8 @@ function renderizarSugerencias(sugerencias) {
   }
 
   contenedorSugerencias.innerHTML =
-    "<p class='mb-2'>Quizás quisiste decir:</p>" +
-    "<div class='row g-3'>" +
-    sugerencias.map(tarjetaHtml).join("") +
-    "</div>";
-
-  contenedorSugerencias.querySelectorAll(".tarjeta-tramite").forEach((tarjeta) => {
-    tarjeta.addEventListener("click", () => {
-      const codigo = tarjeta.dataset.codigo;
-      window.location.href = `ficha.html?codigo=${encodeURIComponent(codigo)}`;
-    });
-  });
+    "<p class='mb-2 fw-medium'>Quizás quisiste decir:</p>" +
+    sugerencias.map(tarjetaHtml).join("");
 }
 
 async function buscarCatalogo() {
@@ -79,6 +78,7 @@ async function buscarCatalogo() {
 
   estadoCarga.hidden = false;
   sinResultados.hidden = true;
+  contadorResultados.textContent = "";
   contenedorResultados.innerHTML = "";
 
   try {
@@ -90,10 +90,11 @@ async function buscarCatalogo() {
       renderizarSugerencias(datos.sugerencias);
     } else {
       renderizarResultados(datos.resultados);
+      contadorResultados.textContent = `Mostrando ${datos.resultados.length} trámite${datos.resultados.length === 1 ? "" : "s"}`;
     }
   } catch (error) {
     contenedorResultados.innerHTML =
-      "<div class='alert alert-danger'>Error de conexión. Intente nuevamente.</div>";
+      "<div class='col-12'><div class='alert alert-danger'>Error de conexión. Intente nuevamente.</div></div>";
   } finally {
     estadoCarga.hidden = true;
   }

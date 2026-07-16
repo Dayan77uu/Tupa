@@ -26,7 +26,15 @@ function renderizarFicha(ficha) {
   if (ficha.requisitos.length === 0) {
     listaRequisitos.innerHTML = "<li class='text-muted'>Sin requisitos registrados.</li>";
   } else {
-    listaRequisitos.innerHTML = ficha.requisitos.map((r) => `<li>${r}</li>`).join("");
+    listaRequisitos.innerHTML = ficha.requisitos
+      .map(
+        (r, i) => `
+        <li class="d-flex align-items-start gap-3 mb-3">
+          <div class="icono-requisito">${i + 1}</div>
+          <span class="small">${r}</span>
+        </li>`
+      )
+      .join("");
   }
 
   estadoCarga.hidden = true;
