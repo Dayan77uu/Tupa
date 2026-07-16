@@ -1,0 +1,32 @@
+from flask import Flask, jsonify
+from sqlalchemy import text
+
+from app.config import Config
+from app.extensions import db, bcrypt
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+
+    from flask_cors import CORS
+    CORS(app)
+
+    from app.auth.routes import auth_bp
+    from app.catalogo.routes import catalogo_bp
+
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(catalogo_bp, url_prefix="/api/catalogo")
+
+    @app.get("/health")
+    def health():
+        try:
+            db.session.execute(text("SELECT 1"))
+            return jsonify({"status": "ok", "db": "connected"}), 200
+        except Exception:
+            return jsonify({"status": "error", "db": "disconnected"}), 500
+
+    return app
