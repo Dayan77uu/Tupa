@@ -1,0 +1,21 @@
+body {
+  background-color: #f4f6f9;
+}
+
+.tarjeta-tramite {
+  transition: box-shadow 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.tarjeta-tramite:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.campo-invalido {
+  border-color: #dc3545 !important;
+}
+
+.mensaje-error-campo {
+  color: #dc3545;
+  font-size: 0.875rem;
+}
