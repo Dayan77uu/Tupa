@@ -17,3 +17,7 @@ class Config:
         "?charset=utf8mb4"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+    FORMATOS_PERMITIDOS_DEFAULT = {"pdf", "jpg", "jpeg", "png"}
