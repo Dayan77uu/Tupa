@@ -3,11 +3,13 @@
 Estos archivos permiten reconstruir localmente la base de datos que usa el backend,
 sin depender de una copia manual de la máquina original.
 
-- `schema.sql` — estructura completa de las 34 tablas de `bdtupa` (sin datos).
+- `schema.sql` — estructura completa de las tablas de `bdtupa` (sin datos),
+  incluyendo `texpediente`, `tdocumentoexpediente` y `contador_expediente`
+  (Sprint 2 — registro de solicitudes).
 - `catalogo_seed.sql` — datos de referencia públicos del catálogo TUPA (perfiles,
-  unidades organizativas, trámites, requisitos, montos). No incluye usuarios,
-  logins ni auditoría: esos son datos reales/sensibles de la institución y no se
-  versionan.
+  unidades organizativas, trámites, requisitos, montos, feriados). No incluye
+  usuarios, logins, auditoría ni expedientes: esos son datos reales/sensibles o
+  específicos de cada entorno y no se versionan.
 
 ## Cómo importar
 
@@ -17,10 +19,17 @@ mysql -u root -p bdtupa < backend/database/schema.sql
 mysql -u root -p bdtupa < backend/database/catalogo_seed.sql
 ```
 
-`schema.sql` ya incluye los cambios de la migración
+`schema.sql` ya incluye los cambios de las migraciones
 [001_auth_audit.sql](../migrations/001_auth_audit.sql) (columnas de bloqueo en
 `tlogin`, tabla `registro_auditoria`, `estado`/`nplazodias` en
-`tcatalogotramite`) — no hace falta aplicarla aparte.
+`tcatalogotramite`) y
+[002_contador_expediente.sql](../migrations/002_contador_expediente.sql)
+(`texpediente`, `tdocumentoexpediente`, `contador_expediente`, columnas de
+checklist en `trequisitotramite`) — no hace falta aplicarlas aparte.
+
+**Nota:** `backend/uploads/` (donde se guardan los documentos subidos) no se
+versiona — se crea vacía y cada quien la va poblando localmente al usar el
+sistema.
 
 ## Usuario de prueba
 

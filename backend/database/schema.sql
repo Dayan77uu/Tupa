@@ -16,6 +16,21 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `contador_expediente`
+--
+
+DROP TABLE IF EXISTS `contador_expediente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `contador_expediente` (
+  `anio` int NOT NULL,
+  `tipo` varchar(10) NOT NULL,
+  `ultimo_numero` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`anio`,`tipo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `registro_auditoria`
 --
 
@@ -29,7 +44,7 @@ CREATE TABLE `registro_auditoria` (
   `resultado` enum('EXITOSO','FALLIDO','ERROR_SISTEMA') NOT NULL,
   `fecha_hora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_registro`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -320,6 +335,30 @@ CREATE TABLE `tdetalletramite` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `tdocumentoexpediente`
+--
+
+DROP TABLE IF EXISTS `tdocumentoexpediente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tdocumentoexpediente` (
+  `nidtdocumentoexpediente` int NOT NULL AUTO_INCREMENT,
+  `nidtexpediente` int NOT NULL,
+  `nidtrequisitotramite` int NOT NULL,
+  `cnombrearchivooriginal` varchar(255) NOT NULL,
+  `crutaarchivo` varchar(255) NOT NULL,
+  `cformatoarchivo` varchar(10) NOT NULL,
+  `ntamaniobytes` int NOT NULL,
+  `dfechasubida` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`nidtdocumentoexpediente`),
+  UNIQUE KEY `uq_documento_expediente_requisito` (`nidtexpediente`,`nidtrequisitotramite`),
+  KEY `fk_documento_requisito` (`nidtrequisitotramite`),
+  CONSTRAINT `fk_documento_expediente` FOREIGN KEY (`nidtexpediente`) REFERENCES `texpediente` (`nidtexpediente`),
+  CONSTRAINT `fk_documento_requisito` FOREIGN KEY (`nidtrequisitotramite`) REFERENCES `trequisitotramite` (`nidtrequisitotramite`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tespecialidad`
 --
 
@@ -375,6 +414,34 @@ CREATE TABLE `tespecificatramite` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `texpediente`
+--
+
+DROP TABLE IF EXISTS `texpediente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `texpediente` (
+  `nidtexpediente` int NOT NULL AUTO_INCREMENT,
+  `cnroexpediente` varchar(20) NOT NULL,
+  `cidtusuario` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ccodigo` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `cestado` enum('BORRADOR','RECIBIDO') NOT NULL DEFAULT 'BORRADOR',
+  `dfecharegistro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `dfechavencimiento` date DEFAULT NULL,
+  `cnumerovoucher` varchar(20) DEFAULT NULL,
+  `nmontovoucher` decimal(10,2) DEFAULT NULL,
+  `dfechapagovoucher` date DEFAULT NULL,
+  `cestadovoucher` enum('PENDIENTE_VALIDACION','VALIDADO','RECHAZADO') DEFAULT NULL,
+  PRIMARY KEY (`nidtexpediente`),
+  UNIQUE KEY `cnroexpediente` (`cnroexpediente`),
+  KEY `fk_expediente_usuario` (`cidtusuario`),
+  KEY `fk_expediente_tramite` (`ccodigo`),
+  CONSTRAINT `fk_expediente_tramite` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`),
+  CONSTRAINT `fk_expediente_usuario` FOREIGN KEY (`cidtusuario`) REFERENCES `tusuario` (`cidtusuario`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tferiado`
 --
 
@@ -388,7 +455,7 @@ CREATE TABLE `tferiado` (
   `brecurrente` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`nidtferidado`),
   UNIQUE KEY `dfecha` (`dfecha`)
-) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -556,6 +623,9 @@ CREATE TABLE `trequisitotramite` (
   `nidtrequisitotramite` int NOT NULL AUTO_INCREMENT,
   `ccodigo` varchar(20) NOT NULL,
   `cdescripcionrequisito` varchar(400) CHARACTER SET latin1 COLLATE latin1_spanish_ci DEFAULT NULL,
+  `bobligatorio` tinyint(1) NOT NULL DEFAULT '1',
+  `cformatospermitidos` varchar(50) NOT NULL DEFAULT 'pdf,jpg,png',
+  `nmaxtamaniomb` int NOT NULL DEFAULT '5',
   PRIMARY KEY (`nidtrequisitotramite`),
   KEY `fk_trequisitotramite_tcatalogotramite1_idx` (`ccodigo`),
   CONSTRAINT `fk_trequisitotramite_tcatalogotramite1` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`)
@@ -4321,4 +4391,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-16  8:11:25
+-- Dump completed on 2026-07-22 18:07:49
