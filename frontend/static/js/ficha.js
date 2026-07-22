@@ -51,6 +51,11 @@ async function cargarFicha() {
     return;
   }
 
+  const btnIniciarTramite = document.getElementById("btn-iniciar-tramite");
+  if (btnIniciarTramite) {
+    btnIniciarTramite.href = `solicitud.html?codigo=${encodeURIComponent(codigo)}`;
+  }
+
   try {
     const respuesta = await fetch(`${API_BASE}/api/catalogo/${encodeURIComponent(codigo)}`);
 

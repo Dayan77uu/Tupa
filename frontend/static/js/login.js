@@ -1,12 +1,6 @@
 const API_BASE = "http://127.0.0.1:5000";
 const DOMINIO_INSTITUCIONAL = "@unsaac.edu.pe";
 
-// Requisito del Sprint 1: el token vive solo en memoria (variable JS), nunca en
-// localStorage. Al navegar a otra pagina (catalogo.html) esta variable se pierde;
-// como el catalogo es publico eso no bloquea el flujo, pero cualquier endpoint
-// protegido que se agregue en Sprint 2 necesitara otra estrategia (sessionStorage
-// o mantener todo en una sola pagina tipo SPA).
-let tokenEnMemoria = null;
 let intentosFallidos = 0;
 
 const form = document.getElementById("form-login");
@@ -116,7 +110,7 @@ form.addEventListener("submit", async (evento) => {
       return;
     }
 
-    tokenEnMemoria = datos.token;
+    guardarToken(datos.token);
     redirigirSegunRol(datos.rol);
   } catch (error) {
     mostrarBanner("conexion", "Error de conexión. Intente nuevamente.");
