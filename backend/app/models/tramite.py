@@ -26,6 +26,9 @@ class RequisitoTramite(db.Model):
     nidtrequisitotramite = db.Column(db.Integer, primary_key=True, autoincrement=True)
     ccodigo = db.Column(db.String(20), db.ForeignKey("tcatalogotramite.ccodigo"), nullable=False)
     cdescripcionrequisito = db.Column(db.String(400))
+    bobligatorio = db.Column(db.Boolean, nullable=False, default=True)
+    cformatospermitidos = db.Column(db.String(50), nullable=False, default="pdf,jpg,png")
+    nmaxtamaniomb = db.Column(db.Integer, nullable=False, default=5)
 
 
 class UnidadTramite(db.Model):
