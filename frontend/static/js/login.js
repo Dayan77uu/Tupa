@@ -63,7 +63,7 @@ function redirigirSegunRol(rol) {
   if (rol === "ESTUDIANTE") {
     window.location.href = "catalogo.html";
   } else {
-    window.location.href = "placeholder.html";
+    window.location.href = "bandeja.html";
   }
 }
 
