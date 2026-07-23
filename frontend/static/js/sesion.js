@@ -14,3 +14,7 @@ function obtenerToken() {
 function limpiarToken() {
   sessionStorage.removeItem(TUPA_TOKEN_KEY);
 }
+
+function headersAuth(extra = {}) {
+  return { Authorization: `Bearer ${obtenerToken()}`, ...extra };
+}

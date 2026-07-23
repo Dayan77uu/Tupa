@@ -17,10 +17,6 @@ function obtenerCodigoDeUrl() {
   return new URLSearchParams(window.location.search).get("codigo");
 }
 
-function headersAuth(extra = {}) {
-  return { Authorization: `Bearer ${obtenerToken()}`, ...extra };
-}
-
 function mostrarErrorGeneral(mensaje) {
   estadoCarga.hidden = true;
   errorGeneral.textContent = mensaje;

@@ -260,3 +260,27 @@ body {
 .info-rapida-item .bi {
   color: var(--unsaac-red);
 }
+
+/* ==========================================================================
+   Seguimiento de expedientes (RF07) — 5 estados con color
+   ========================================================================== */
+.tarjeta-expediente {
+  border-left: 4px solid;
+  border-radius: var(--card-radius);
+}
+
+.tarjeta-expediente.estado-gris { border-left-color: #9CA3AF; }
+.tarjeta-expediente.estado-azul { border-left-color: #3B82F6; }
+.tarjeta-expediente.estado-naranja { border-left-color: #F59E0B; }
+.tarjeta-expediente.estado-verde { border-left-color: #10B981; }
+.tarjeta-expediente.estado-rojo { border-left-color: #EF4444; }
+
+.badge-estado-gris { background-color: #F3F4F6; color: #374151; }
+.badge-estado-azul { background-color: #DBEAFE; color: #1E40AF; }
+.badge-estado-naranja { background-color: #FEF3C7; color: #92400E; }
+.badge-estado-verde { background-color: #D1FAE5; color: #065F46; }
+.badge-estado-rojo { background-color: #FEE2E2; color: #991B1B; }
+
+.notificacion-item.no-leida {
+  background-color: #FEF2F2;
+}
