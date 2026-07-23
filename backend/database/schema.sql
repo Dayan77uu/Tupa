@@ -89,6 +89,7 @@ CREATE TABLE `talumno` (
   `curricula` varchar(4) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `codigoespecialidad` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `codigosede` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `correo_institucional_generado` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'GENERADO para el proyecto (autorizado por el docente 23/07/2026). No es el correo institucional oficial -- UNSAAC no expone ese dato en bdtupa.',
   PRIMARY KEY (`codigoalumno`),
   KEY `fk_cosede` (`codigosede`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -22,3 +22,4 @@ class Alumno(db.Model):
     amalumno = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(100), nullable=True)
     codigoespecialidad = db.Column(db.String(3), nullable=True)
+    correo_institucional_generado = db.Column(db.String(100), nullable=True)
