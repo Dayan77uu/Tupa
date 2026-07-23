@@ -5,12 +5,15 @@ sin depender de una copia manual de la máquina original.
 
 - `schema.sql` — estructura completa de las tablas de `bdtupa` (sin datos),
   incluyendo `texpediente`, `tdocumentoexpediente`, `contador_expediente`
-  (Sprint 2), `tmovimientoexpediente`, `tnotificacion` (Sprint 3) y
-  `tflujoderivacion` + columnas de oficina en `texpediente`/`tlogin` (Sprint 4).
+  (Sprint 2), `tmovimientoexpediente`, `tnotificacion` (Sprint 3),
+  `tflujoderivacion` + columnas de oficina en `texpediente`/`tlogin` (Sprint 4)
+  y `tperfildemo`/`thistorialcatalogo` (Sprint 5).
 - `catalogo_seed.sql` — datos de referencia públicos del catálogo TUPA (perfiles,
-  unidades organizativas, trámites, requisitos, montos, feriados). No incluye
-  usuarios, logins, auditoría ni expedientes: esos son datos reales/sensibles o
-  específicos de cada entorno y no se versionan.
+  unidades organizativas, trámites, requisitos, montos, feriados) **y los 5
+  estudiantes sintéticos de `tperfildemo`** (ver más abajo — no son datos
+  reales, es seguro compartirlos). No incluye usuarios, logins, auditoría,
+  expedientes ni `talumno`: esos sí son reales/sensibles o específicos de cada
+  entorno y no se versionan.
 
 ## Cómo importar
 
@@ -69,17 +72,9 @@ explícitamente como prueba (no institucional real) — ver el comentario en la
 migración 004. Hacen falta datos reales del flujo del TUPA antes de usar
 derivaciones en producción.
 
-Para poder loguearte con un rol administrativo (el panel de Sprint 4), genera
-también un usuario de prueba administrativo:
-
-```bash
-cd backend
-venv\Scripts\python.exe -m scripts.seed_test_admin
-```
-
-**Nota:** `backend/uploads/` (donde se guardan los documentos subidos) no se
-versiona — se crea vacía y cada quien la va poblando localmente al usar el
-sistema.
+**Nota:** `backend/uploads/` (documentos subidos) y `backend/backups/` (dumps
+completos con datos reales de `talumno`) no se versionan — nunca deben subirse
+a GitHub, se generan/pueblan localmente.
 
 ## Usuario de prueba
 
