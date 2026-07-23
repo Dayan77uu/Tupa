@@ -78,3 +78,23 @@ def registrar_voucher(nro_expediente):
 def confirmar_solicitud(nro_expediente):
     status_code, body = service.confirmar_solicitud(nro_expediente, g.id_usuario)
     return jsonify(body), status_code
+
+
+@solicitud_bp.get("/expedientes/<nro_expediente>/observacion")
+@requiere_auth
+def observacion_expediente(nro_expediente):
+    status_code, body = service.obtener_observacion(nro_expediente, g.id_usuario)
+    return jsonify(body), status_code
+
+
+@solicitud_bp.post("/expedientes/<nro_expediente>/subsanar")
+@requiere_auth
+def subsanar_expediente(nro_expediente):
+    id_requisito = request.form.get("id_requisito", type=int)
+    archivo = request.files.get("archivo")
+
+    if not id_requisito or archivo is None:
+        return jsonify({"error": "id_requisito y archivo son requeridos"}), 400
+
+    status_code, body = service.subsanar_documento(nro_expediente, g.id_usuario, id_requisito, archivo)
+    return jsonify(body), status_code

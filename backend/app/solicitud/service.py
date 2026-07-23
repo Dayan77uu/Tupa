@@ -10,6 +10,8 @@ from app.models.usuario import Usuario
 from app.models.perfil_academico import Alumno, Especialidad
 from app.models.tramite import CatalogoTramite, RequisitoTramite
 from app.models.expediente import Expediente, DocumentoExpediente, ContadorExpediente
+from app.models.movimiento import MovimientoExpediente
+from app.seguimiento.service import registrar_movimiento
 
 MENSAJE_NO_AUTORIZADO = "No tiene acceso a este expediente"
 MENSAJE_EXPEDIENTE_NO_ENCONTRADO = "Expediente no encontrado"
@@ -179,11 +181,10 @@ def obtener_estado_checklist(nro_expediente: str, cidtusuario: str):
     return 200, _estado_checklist_interno(expediente)
 
 
-def subir_documento(nro_expediente: str, cidtusuario: str, id_requisito: int, archivo):
-    expediente, error = _obtener_expediente_del_usuario(nro_expediente, cidtusuario)
-    if error:
-        return error
-
+def _validar_y_guardar_documento(expediente: Expediente, id_requisito: int, archivo):
+    """Devuelve (status_code, body) si hay un error de validacion, o None si
+    el documento se guardo correctamente. Compartido por subir_documento
+    (Sprint 2) y subsanar_documento (Sprint 3)."""
     requisito = db.session.get(RequisitoTramite, id_requisito)
     if requisito is None or requisito.ccodigo != expediente.ccodigo:
         return 400, {"error": "El requisito no corresponde a este expediente"}
@@ -206,12 +207,12 @@ def subir_documento(nro_expediente: str, cidtusuario: str, id_requisito: int, ar
     if tamano_bytes > limite_bytes:
         return 400, {"error": f"El archivo supera el tamano maximo de {requisito.nmaxtamaniomb} MB"}
 
-    carpeta_expediente = os.path.join(Config.UPLOAD_FOLDER, nro_expediente)
+    carpeta_expediente = os.path.join(Config.UPLOAD_FOLDER, expediente.cnroexpediente)
     os.makedirs(carpeta_expediente, exist_ok=True)
     nombre_guardado = f"req{id_requisito}_{nombre_original}"
     ruta_absoluta = os.path.join(carpeta_expediente, nombre_guardado)
     archivo.save(ruta_absoluta)
-    ruta_relativa = f"{nro_expediente}/{nombre_guardado}"
+    ruta_relativa = f"{expediente.cnroexpediente}/{nombre_guardado}"
 
     documento_existente = DocumentoExpediente.query.filter_by(
         nidtexpediente=expediente.nidtexpediente, nidtrequisitotramite=id_requisito
@@ -233,6 +234,17 @@ def subir_documento(nro_expediente: str, cidtusuario: str, id_requisito: int, ar
             )
         )
     db.session.commit()
+    return None
+
+
+def subir_documento(nro_expediente: str, cidtusuario: str, id_requisito: int, archivo):
+    expediente, error = _obtener_expediente_del_usuario(nro_expediente, cidtusuario)
+    if error:
+        return error
+
+    error = _validar_y_guardar_documento(expediente, id_requisito, archivo)
+    if error:
+        return error
 
     return 200, _estado_checklist_interno(expediente)
 
@@ -268,7 +280,73 @@ def confirmar_solicitud(nro_expediente: str, cidtusuario: str):
             "faltantes": estado_checklist["faltantes"],
         }
 
-    expediente.cestado = "RECIBIDO"
-    db.session.commit()
+    registrar_movimiento(
+        nro_expediente, "PENDIENTE", comentario=None, usuario_responsable=cidtusuario
+    )
 
-    return 200, {"nro_expediente": nro_expediente, "estado": expediente.cestado}
+    return 200, {"nro_expediente": nro_expediente, "estado": "PENDIENTE"}
+
+
+def _obtener_ultima_observacion(nro_expediente: str):
+    return (
+        MovimientoExpediente.query.filter_by(
+            nro_expediente=nro_expediente, estado_nuevo="OBSERVADO"
+        )
+        .order_by(MovimientoExpediente.fecha_hora.desc())
+        .first()
+    )
+
+
+def obtener_observacion(nro_expediente: str, cidtusuario: str):
+    expediente, error = _obtener_expediente_del_usuario(nro_expediente, cidtusuario)
+    if error:
+        return error
+
+    if expediente.cestado != "OBSERVADO":
+        return 400, {"error": "El expediente no esta en estado Observado"}
+
+    movimiento = _obtener_ultima_observacion(nro_expediente)
+    if movimiento is None:
+        return 404, {"error": "No se encontro el detalle de la observacion"}
+
+    requisito = (
+        db.session.get(RequisitoTramite, movimiento.id_requisito_observado)
+        if movimiento.id_requisito_observado
+        else None
+    )
+
+    return 200, {
+        "nro_expediente": nro_expediente,
+        "id_requisito_observado": movimiento.id_requisito_observado,
+        "descripcion_requisito": requisito.cdescripcionrequisito if requisito else None,
+        "comentario": movimiento.comentario,
+    }
+
+
+def subsanar_documento(nro_expediente: str, cidtusuario: str, id_requisito: int, archivo):
+    expediente, error = _obtener_expediente_del_usuario(nro_expediente, cidtusuario)
+    if error:
+        return error
+
+    if expediente.cestado != "OBSERVADO":
+        return 400, {"error": "Solo se puede subsanar un expediente en estado Observado"}
+
+    movimiento = _obtener_ultima_observacion(nro_expediente)
+    if movimiento is None or movimiento.id_requisito_observado is None:
+        return 400, {"error": "No hay un requisito especifico observado para este expediente"}
+
+    if id_requisito != movimiento.id_requisito_observado:
+        return 400, {"error": "Solo puede reemplazar el documento que fue observado"}
+
+    error = _validar_y_guardar_documento(expediente, id_requisito, archivo)
+    if error:
+        return error
+
+    registrar_movimiento(
+        nro_expediente,
+        "EN_REVISION",
+        comentario="El usuario subsano el documento observado.",
+        usuario_responsable=cidtusuario,
+    )
+
+    return 200, {"nro_expediente": nro_expediente, "estado": "EN_REVISION"}
