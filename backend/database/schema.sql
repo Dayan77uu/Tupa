@@ -44,7 +44,7 @@ CREATE TABLE `registro_auditoria` (
   `resultado` enum('EXITOSO','FALLIDO','ERROR_SISTEMA') NOT NULL,
   `fecha_hora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_registro`)
-) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -355,7 +355,7 @@ CREATE TABLE `tdocumentoexpediente` (
   KEY `fk_documento_requisito` (`nidtrequisitotramite`),
   CONSTRAINT `fk_documento_expediente` FOREIGN KEY (`nidtexpediente`) REFERENCES `texpediente` (`nidtexpediente`),
   CONSTRAINT `fk_documento_requisito` FOREIGN KEY (`nidtrequisitotramite`) REFERENCES `trequisitotramite` (`nidtrequisitotramite`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -425,7 +425,7 @@ CREATE TABLE `texpediente` (
   `cnroexpediente` varchar(20) NOT NULL,
   `cidtusuario` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ccodigo` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `cestado` enum('BORRADOR','RECIBIDO') NOT NULL DEFAULT 'BORRADOR',
+  `cestado` enum('BORRADOR','PENDIENTE','EN_REVISION','OBSERVADO','APROBADO','RECHAZADO') NOT NULL DEFAULT 'BORRADOR',
   `dfecharegistro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `dfechavencimiento` date DEFAULT NULL,
   `cnumerovoucher` varchar(20) DEFAULT NULL,
@@ -438,7 +438,7 @@ CREATE TABLE `texpediente` (
   KEY `fk_expediente_tramite` (`ccodigo`),
   CONSTRAINT `fk_expediente_tramite` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`),
   CONSTRAINT `fk_expediente_usuario` FOREIGN KEY (`cidtusuario`) REFERENCES `tusuario` (`cidtusuario`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -538,6 +538,54 @@ CREATE TABLE `tmontotramite` (
   KEY `fk_tmontotramite_tcatalogotramite_idx` (`ccodigo`),
   CONSTRAINT `fk_tmontotramite_tcatalogotramite` FOREIGN KEY (`ccodigo`) REFERENCES `tcatalogotramite` (`ccodigo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmovimientoexpediente`
+--
+
+DROP TABLE IF EXISTS `tmovimientoexpediente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tmovimientoexpediente` (
+  `id_movimiento` int NOT NULL AUTO_INCREMENT,
+  `nro_expediente` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `estado_anterior` varchar(20) DEFAULT NULL,
+  `estado_nuevo` varchar(20) NOT NULL,
+  `comentario` text,
+  `id_requisito_observado` int DEFAULT NULL,
+  `usuario_responsable` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_hora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_movimiento`),
+  KEY `fk_movimiento_expediente` (`nro_expediente`),
+  KEY `fk_movimiento_usuario` (`usuario_responsable`),
+  KEY `fk_movimiento_requisito` (`id_requisito_observado`),
+  CONSTRAINT `fk_movimiento_expediente` FOREIGN KEY (`nro_expediente`) REFERENCES `texpediente` (`cnroexpediente`),
+  CONSTRAINT `fk_movimiento_requisito` FOREIGN KEY (`id_requisito_observado`) REFERENCES `trequisitotramite` (`nidtrequisitotramite`),
+  CONSTRAINT `fk_movimiento_usuario` FOREIGN KEY (`usuario_responsable`) REFERENCES `tusuario` (`cidtusuario`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tnotificacion`
+--
+
+DROP TABLE IF EXISTS `tnotificacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tnotificacion` (
+  `id_notificacion` int NOT NULL AUTO_INCREMENT,
+  `id_usuario` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nro_expediente` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `mensaje` varchar(255) NOT NULL,
+  `leida` tinyint(1) NOT NULL DEFAULT '0',
+  `fecha_hora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_notificacion`),
+  KEY `fk_notificacion_usuario` (`id_usuario`),
+  KEY `fk_notificacion_expediente` (`nro_expediente`),
+  CONSTRAINT `fk_notificacion_expediente` FOREIGN KEY (`nro_expediente`) REFERENCES `texpediente` (`cnroexpediente`),
+  CONSTRAINT `fk_notificacion_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `tusuario` (`cidtusuario`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4391,4 +4439,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 18:07:49
+-- Dump completed on 2026-07-22 19:31:22

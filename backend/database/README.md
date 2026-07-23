@@ -4,8 +4,8 @@ Estos archivos permiten reconstruir localmente la base de datos que usa el backe
 sin depender de una copia manual de la máquina original.
 
 - `schema.sql` — estructura completa de las tablas de `bdtupa` (sin datos),
-  incluyendo `texpediente`, `tdocumentoexpediente` y `contador_expediente`
-  (Sprint 2 — registro de solicitudes).
+  incluyendo `texpediente`, `tdocumentoexpediente`, `contador_expediente`
+  (Sprint 2) y `tmovimientoexpediente`, `tnotificacion` (Sprint 3).
 - `catalogo_seed.sql` — datos de referencia públicos del catálogo TUPA (perfiles,
   unidades organizativas, trámites, requisitos, montos, feriados). No incluye
   usuarios, logins, auditoría ni expedientes: esos son datos reales/sensibles o
@@ -25,7 +25,10 @@ mysql -u root -p bdtupa < backend/database/catalogo_seed.sql
 `tcatalogotramite`) y
 [002_contador_expediente.sql](../migrations/002_contador_expediente.sql)
 (`texpediente`, `tdocumentoexpediente`, `contador_expediente`, columnas de
-checklist en `trequisitotramite`) — no hace falta aplicarlas aparte.
+checklist en `trequisitotramite`) y
+[003_estados_seguimiento.sql](../migrations/003_estados_seguimiento.sql)
+(5 estados de seguimiento en `texpediente.cestado`, `tmovimientoexpediente`,
+`tnotificacion`) — no hace falta aplicarlas aparte.
 
 **Nota:** `backend/uploads/` (donde se guardan los documentos subidos) no se
 versiona — se crea vacía y cada quien la va poblando localmente al usar el
