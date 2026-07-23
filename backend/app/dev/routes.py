@@ -10,8 +10,15 @@ Debe eliminarse o protegerse por rol de administrador en Sprint 4. No tiene
 ningun control de rol: cualquier usuario autenticado puede forzar el estado
 de CUALQUIER expediente (no solo el suyo), a proposito, para simular lo que
 hara un administrativo.
+
+Como salvaguarda minima mientras tanto: el endpoint responde 404 (no 403,
+para no revelar su existencia) fuera de FLASK_ENV=development. En este
+entorno local FLASK_ENV no esta definido, lo cual cuenta como desarrollo.
 """
-from flask import Blueprint, request, jsonify, g
+import os
+from functools import wraps
+
+from flask import Blueprint, request, jsonify, g, abort
 
 from app.auth.decorators import requiere_auth
 from app.models.expediente import Expediente
@@ -22,7 +29,23 @@ dev_bp = Blueprint("dev", __name__)
 ESTADOS_VALIDOS = {"PENDIENTE", "EN_REVISION", "OBSERVADO", "APROBADO", "RECHAZADO"}
 
 
+def solo_en_desarrollo(f):
+    """404 (no 403) fuera de desarrollo, para no revelar que el endpoint existe.
+    Se aplica ANTES que @requiere_auth para que ni siquiera un intento sin
+    token llegue a distinguir este endpoint de una ruta inexistente."""
+
+    @wraps(f)
+    def decorada(*args, **kwargs):
+        entorno = os.environ.get("FLASK_ENV")
+        if entorno not in (None, "development"):
+            abort(404)
+        return f(*args, **kwargs)
+
+    return decorada
+
+
 @dev_bp.post("/dev/expedientes/<nro_expediente>/forzar-estado")
+@solo_en_desarrollo
 @requiere_auth
 def forzar_estado(nro_expediente):
     print(
