@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, date
+from datetime import datetime
 
 from sqlalchemy import text
 from werkzeug.utils import secure_filename
@@ -8,10 +8,11 @@ from app.config import Config
 from app.extensions import db
 from app.models.usuario import Usuario
 from app.models.perfil_academico import Alumno, Especialidad
-from app.models.tramite import CatalogoTramite, RequisitoTramite
+from app.models.tramite import CatalogoTramite, RequisitoTramite, UnidadTramite
 from app.models.expediente import Expediente, DocumentoExpediente, ContadorExpediente
 from app.models.movimiento import MovimientoExpediente
 from app.seguimiento.service import registrar_movimiento
+from app.dias_habiles import sumar_dias_habiles
 
 MENSAJE_NO_AUTORIZADO = "No tiene acceso a este expediente"
 MENSAJE_EXPEDIENTE_NO_ENCONTRADO = "Expediente no encontrado"
@@ -85,27 +86,16 @@ def _generar_numero_expediente(tipo: str) -> str:
     return f"{anio}-{tipo}-{secuencial:06d}"
 
 
-def _es_feriado(fecha: date, feriados_fijos: set, feriados_recurrentes: set) -> bool:
-    if fecha in feriados_fijos:
-        return True
-    return (fecha.month, fecha.day) in feriados_recurrentes
-
-
-def _calcular_fecha_vencimiento(fecha_inicio: date, dias_habiles: int) -> date:
-    feriados = db.session.execute(text("SELECT dfecha, brecurrente FROM tferiado")).all()
-    fijos = {f.dfecha for f in feriados if not f.brecurrente}
-    recurrentes = {(f.dfecha.month, f.dfecha.day) for f in feriados if f.brecurrente}
-
-    fecha = fecha_inicio
-    dias_contados = 0
-    while dias_contados < dias_habiles:
-        fecha = date.fromordinal(fecha.toordinal() + 1)
-        if fecha.weekday() >= 5:
-            continue
-        if _es_feriado(fecha, fijos, recurrentes):
-            continue
-        dias_contados += 1
-    return fecha
+def _oficina_inicial(ccodigo: str) -> int:
+    """Oficina responsable real via tunidadtramite si existe; si no (la mayoria
+    de tramites no la tienen cargada), SEDE CENTRAL CUSCO (id 1) por defecto."""
+    fila = (
+        db.session.query(UnidadTramite.nidtunidadorganizativa)
+        .filter(UnidadTramite.ccodigo == ccodigo)
+        .order_by(UnidadTramite.nidtunidadorganizativa.asc())
+        .first()
+    )
+    return fila[0] if fila else 1
 
 
 def registrar_solicitud(cidtusuario: str, ccodigo: str):
@@ -118,14 +108,13 @@ def registrar_solicitud(cidtusuario: str, ccodigo: str):
     nro_expediente = _generar_numero_expediente(tipo)
 
     hoy = datetime.utcnow().date()
-    vencimiento = (
-        _calcular_fecha_vencimiento(hoy, tramite.nplazodias) if tramite.nplazodias else None
-    )
+    vencimiento = sumar_dias_habiles(hoy, tramite.nplazodias) if tramite.nplazodias else None
 
     expediente = Expediente(
         cnroexpediente=nro_expediente,
         cidtusuario=cidtusuario,
         ccodigo=ccodigo,
+        nidtoficinaactual=_oficina_inicial(ccodigo),
         cestado="BORRADOR",
         dfechavencimiento=vencimiento,
     )

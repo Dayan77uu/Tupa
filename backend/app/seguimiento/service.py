@@ -20,21 +20,24 @@ MENSAJE_NO_AUTORIZADO = "No tiene acceso a este expediente"
 
 def registrar_movimiento(
     nro_expediente: str,
-    estado_nuevo: str,
+    estado_nuevo: str = None,
     comentario: str = None,
     usuario_responsable: str = None,
     id_requisito_observado: int = None,
+    oficina_nueva: int = None,
 ):
-    """Cambia el estado de un expediente y deja constancia inmutable en
-    tmovimientoexpediente. Notifica automaticamente al dueno del expediente.
-    Reutilizable por cualquier modulo que necesite cambiar el estado (Sprint 3
-    en adelante: subsanacion, endpoint temporal de pruebas, y en el futuro el
-    panel administrativo de Sprint 4)."""
+    """Cambia el estado y/o la oficina actual de un expediente y deja constancia
+    inmutable en tmovimientoexpediente en una sola transaccion (RN-23: atomico).
+    Notifica automaticamente al dueno del expediente. Reutilizable por cualquier
+    modulo que necesite cambiar el estado u oficina (solicitudes, subsanacion,
+    y desde Sprint 4 el panel administrativo: decision y derivacion)."""
     expediente = Expediente.query.filter_by(cnroexpediente=nro_expediente).first()
     if expediente is None:
         return None
 
     estado_anterior = expediente.cestado
+    oficina_anterior = expediente.nidtoficinaactual
+    estado_nuevo = estado_nuevo or estado_anterior
 
     db.session.add(
         MovimientoExpediente(
@@ -44,12 +47,19 @@ def registrar_movimiento(
             comentario=comentario,
             id_requisito_observado=id_requisito_observado,
             usuario_responsable=usuario_responsable,
+            oficina_anterior=oficina_anterior if oficina_nueva is not None else None,
+            oficina_nueva=oficina_nueva,
         )
     )
     expediente.cestado = estado_nuevo
+    if oficina_nueva is not None:
+        expediente.nidtoficinaactual = oficina_nueva
     db.session.commit()
 
-    mensaje = f"Tu expediente {nro_expediente} cambió a estado {ESTADO_LABEL.get(estado_nuevo, estado_nuevo)}."
+    if oficina_nueva is not None:
+        mensaje = f"Tu expediente {nro_expediente} fue derivado a otra oficina."
+    else:
+        mensaje = f"Tu expediente {nro_expediente} cambió a estado {ESTADO_LABEL.get(estado_nuevo, estado_nuevo)}."
     if comentario:
         mensaje += f" {comentario}"
     notificar(expediente.cidtusuario, nro_expediente, mensaje)
@@ -105,6 +115,8 @@ def obtener_historial(nro_expediente: str, cidtusuario: str):
                 "estado_anterior": m.estado_anterior,
                 "estado_nuevo": m.estado_nuevo,
                 "comentario": m.comentario,
+                "oficina_anterior": m.oficina_anterior,
+                "oficina_nueva": m.oficina_nueva,
                 "fecha_hora": m.fecha_hora.isoformat() if m.fecha_hora else None,
             }
             for m in movimientos

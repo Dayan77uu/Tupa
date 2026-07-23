@@ -21,6 +21,7 @@ def create_app():
     from app.seguimiento.routes import seguimiento_bp
     from app.notificaciones.routes import notificaciones_bp
     from app.dev.routes import dev_bp
+    from app.admin.routes import admin_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(catalogo_bp, url_prefix="/api/catalogo")
@@ -28,6 +29,7 @@ def create_app():
     app.register_blueprint(seguimiento_bp, url_prefix="/api")
     app.register_blueprint(notificaciones_bp, url_prefix="/api")
     app.register_blueprint(dev_bp, url_prefix="/api")
+    app.register_blueprint(admin_bp, url_prefix="/api")
 
     @app.get("/health")
     def health():

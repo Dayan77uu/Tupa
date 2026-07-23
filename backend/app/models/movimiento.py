@@ -26,4 +26,10 @@ class MovimientoExpediente(db.Model):
     usuario_responsable = db.Column(
         db.String(10), db.ForeignKey("tusuario.cidtusuario"), nullable=True
     )
+    oficina_anterior = db.Column(
+        db.Integer, db.ForeignKey("tunidadorganizativa.nidtunidadorganizativa"), nullable=True
+    )
+    oficina_nueva = db.Column(
+        db.Integer, db.ForeignKey("tunidadorganizativa.nidtunidadorganizativa"), nullable=True
+    )
     fecha_hora = db.Column(db.DateTime, server_default=db.func.now())
