@@ -16,6 +16,9 @@ class Expediente(db.Model):
     cnroexpediente = db.Column(db.String(20), unique=True, nullable=False)
     cidtusuario = db.Column(db.String(10), db.ForeignKey("tusuario.cidtusuario"), nullable=False)
     ccodigo = db.Column(db.String(20), db.ForeignKey("tcatalogotramite.ccodigo"), nullable=False)
+    nidtoficinaactual = db.Column(
+        db.Integer, db.ForeignKey("tunidadorganizativa.nidtunidadorganizativa"), nullable=False
+    )
     cestado = db.Column(
         db.Enum("BORRADOR", "PENDIENTE", "EN_REVISION", "OBSERVADO", "APROBADO", "RECHAZADO"),
         nullable=False,
@@ -29,9 +32,11 @@ class Expediente(db.Model):
     cestadovoucher = db.Column(
         db.Enum("PENDIENTE_VALIDACION", "VALIDADO", "RECHAZADO"), nullable=True
     )
+    cmotivorechazovoucher = db.Column(db.String(255), nullable=True)
 
     tramite = db.relationship("CatalogoTramite")
     documentos = db.relationship("DocumentoExpediente", backref="expediente")
+    oficina = db.relationship("UnidadOrganizativa")
 
 
 class DocumentoExpediente(db.Model):

@@ -34,6 +34,9 @@ class Login(db.Model):
     ccontrasenia = db.Column(db.String(200))
     intentos_fallidos = db.Column(db.Integer, nullable=False, default=0)
     fecha_bloqueo = db.Column(db.DateTime, nullable=True)
+    nidtunidadorganizativa = db.Column(
+        db.Integer, db.ForeignKey("tunidadorganizativa.nidtunidadorganizativa"), nullable=True
+    )
 
     usuario = db.relationship("Usuario", backref="logins")
     perfil = db.relationship("Perfil")
