@@ -5,7 +5,8 @@ sin depender de una copia manual de la máquina original.
 
 - `schema.sql` — estructura completa de las tablas de `bdtupa` (sin datos),
   incluyendo `texpediente`, `tdocumentoexpediente`, `contador_expediente`
-  (Sprint 2) y `tmovimientoexpediente`, `tnotificacion` (Sprint 3).
+  (Sprint 2), `tmovimientoexpediente`, `tnotificacion` (Sprint 3) y
+  `tflujoderivacion` + columnas de oficina en `texpediente`/`tlogin` (Sprint 4).
 - `catalogo_seed.sql` — datos de referencia públicos del catálogo TUPA (perfiles,
   unidades organizativas, trámites, requisitos, montos, feriados). No incluye
   usuarios, logins, auditoría ni expedientes: esos son datos reales/sensibles o
@@ -28,7 +29,23 @@ mysql -u root -p bdtupa < backend/database/catalogo_seed.sql
 checklist en `trequisitotramite`) y
 [003_estados_seguimiento.sql](../migrations/003_estados_seguimiento.sql)
 (5 estados de seguimiento en `texpediente.cestado`, `tmovimientoexpediente`,
-`tnotificacion`) — no hace falta aplicarlas aparte.
+`tnotificacion`) y
+[004_bandeja_derivacion.sql](../migrations/004_bandeja_derivacion.sql)
+(oficina actual del expediente, motivo de rechazo de voucher, oficina por
+login administrativo, `tflujoderivacion`) — no hace falta aplicarlas aparte.
+
+**Importante:** `tflujoderivacion` solo trae UNA fila de datos, marcada
+explícitamente como prueba (no institucional real) — ver el comentario en la
+migración 004. Hacen falta datos reales del flujo del TUPA antes de usar
+derivaciones en producción.
+
+Para poder loguearte con un rol administrativo (el panel de Sprint 4), genera
+también un usuario de prueba administrativo:
+
+```bash
+cd backend
+venv\Scripts\python.exe -m scripts.seed_test_admin
+```
 
 **Nota:** `backend/uploads/` (donde se guardan los documentos subidos) no se
 versiona — se crea vacía y cada quien la va poblando localmente al usar el
