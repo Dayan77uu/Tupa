@@ -18,3 +18,16 @@ function limpiarToken() {
 function headersAuth(extra = {}) {
   return { Authorization: `Bearer ${obtenerToken()}`, ...extra };
 }
+
+function obtenerRolDelToken() {
+  // Decodificacion sin verificar firma: solo para decisiones de UI (mostrar/
+  // ocultar un filtro). El backend siempre valida el rol de forma independiente.
+  const token = obtenerToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.rol || null;
+  } catch (error) {
+    return null;
+  }
+}

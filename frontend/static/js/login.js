@@ -62,6 +62,8 @@ function mostrarBanner(tipo, mensaje) {
 function redirigirSegunRol(rol) {
   if (rol === "ESTUDIANTE") {
     window.location.href = "catalogo.html";
+  } else if (rol === "ADMINISTRADOR") {
+    window.location.href = "admin-catalogo.html";
   } else {
     window.location.href = "bandeja.html";
   }
