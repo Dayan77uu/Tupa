@@ -16,7 +16,11 @@ class Expediente(db.Model):
     cnroexpediente = db.Column(db.String(20), unique=True, nullable=False)
     cidtusuario = db.Column(db.String(10), db.ForeignKey("tusuario.cidtusuario"), nullable=False)
     ccodigo = db.Column(db.String(20), db.ForeignKey("tcatalogotramite.ccodigo"), nullable=False)
-    cestado = db.Column(db.Enum("BORRADOR", "RECIBIDO"), nullable=False, default="BORRADOR")
+    cestado = db.Column(
+        db.Enum("BORRADOR", "PENDIENTE", "EN_REVISION", "OBSERVADO", "APROBADO", "RECHAZADO"),
+        nullable=False,
+        default="BORRADOR",
+    )
     dfecharegistro = db.Column(db.DateTime, server_default=db.func.now())
     dfechavencimiento = db.Column(db.Date, nullable=True)
     cnumerovoucher = db.Column(db.String(20), nullable=True)
