@@ -17,4 +17,8 @@ class Alumno(db.Model):
 
     codigoalumno = db.Column(db.String(8), primary_key=True)
     dni = db.Column(db.String(10), nullable=False)
+    nombresalumno = db.Column(db.String(50), nullable=True)
+    apalumno = db.Column(db.String(50), nullable=True)
+    amalumno = db.Column(db.String(50), nullable=True)
+    email = db.Column(db.String(100), nullable=True)
     codigoespecialidad = db.Column(db.String(3), nullable=True)

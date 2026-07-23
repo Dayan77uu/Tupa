@@ -32,7 +32,37 @@ checklist en `trequisitotramite`) y
 `tnotificacion`) y
 [004_bandeja_derivacion.sql](../migrations/004_bandeja_derivacion.sql)
 (oficina actual del expediente, motivo de rechazo de voucher, oficina por
-login administrativo, `tflujoderivacion`) — no hace falta aplicarlas aparte.
+login administrativo, `tflujoderivacion`) y
+[005_dataset_sintetico.sql](../migrations/005_dataset_sintetico.sql)
+(`tperfildemo`, `thistorialcatalogo`) — no hace falta aplicarlas aparte.
+
+### Dataset sintético para desarrollo/demo (Sprint 5)
+
+**`tperfildemo` NO representa personas reales de la UNSAAC.** Contexto: la
+tabla `tpersonal` que asumía el Plan de Proyecto nunca se creó en la BD real.
+`talumno` sí existe (4,522 alumnos reales), pero ninguno tiene correo
+`@unsaac.edu.pe` (son todos Gmail/Hotmail personales) y 0 de los usuarios
+actuales de `tusuario` coinciden con un alumno real por DNI ni por código.
+
+Por eso se creó `tperfildemo` con 5 estudiantes ficticios (DNI `00000001`-
+`00000005`, fuera de cualquier rango real) y correos `@unsaac.edu.pe`
+inventados, para poder desarrollar y probar el login y el perfil sin tocar
+`talumno`. **`talumno` se consulta de forma exclusivamente read-only — nunca
+se le inserta ni actualiza nada.**
+
+`app/perfil_service.py::obtener_perfil_por_dni()` es el ÚNICO punto del
+sistema donde se lee nombre/carrera de un estudiante: primero intenta
+`talumno` (real), y si no encuentra el DNI cae a `tperfildemo` (sintético).
+Esto permite cambiar a datos reales de producción sin tocar código, una vez
+que el docente confirme el origen de `bdtupa`.
+
+Para generar el usuario demo (DNI `00000001`, prueba el fallback) y un
+usuario ficticio por cada uno de los 4 roles administrativos reales:
+
+```bash
+cd backend
+venv\Scripts\python.exe -m scripts.seed_dataset_sintetico
+```
 
 **Importante:** `tflujoderivacion` solo trae UNA fila de datos, marcada
 explícitamente como prueba (no institucional real) — ver el comentario en la

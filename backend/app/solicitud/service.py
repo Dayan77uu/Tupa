@@ -7,8 +7,8 @@ from werkzeug.utils import secure_filename
 from app.config import Config
 from app.extensions import db
 from app.models.usuario import Usuario
-from app.models.perfil_academico import Alumno, Especialidad
 from app.models.tramite import CatalogoTramite, RequisitoTramite, UnidadTramite
+from app.perfil_service import obtener_perfil_por_dni
 from app.models.expediente import Expediente, DocumentoExpediente, ContadorExpediente
 from app.models.movimiento import MovimientoExpediente
 from app.seguimiento.service import registrar_movimiento
@@ -19,21 +19,24 @@ MENSAJE_EXPEDIENTE_NO_ENCONTRADO = "Expediente no encontrado"
 
 
 def obtener_perfil(cidtusuario: str):
+    """Nombre y carrera se leen EXCLUSIVAMENTE via obtener_perfil_por_dni()
+    (talumno real -> tperfildemo sintetico). Si el DNI no aparece en ninguna
+    de las dos fuentes, se usa el nombre ya guardado en tusuario como ultimo
+    respaldo (cuentas de prueba historicas de Sprint 1 que no tienen DNI en
+    ninguna tabla academica)."""
     usuario = db.session.get(Usuario, cidtusuario)
     if usuario is None:
         return None
 
-    alumno = Alumno.query.filter_by(dni=usuario.cdni).first()
-    especialidad = None
-    if alumno and alumno.codigoespecialidad:
-        especialidad = db.session.get(Especialidad, alumno.codigoespecialidad)
+    perfil_academico = obtener_perfil_por_dni(usuario.cdni)
+    nombre_respaldo = " ".join(
+        parte for parte in [usuario.cnombres, usuario.cpaterno, usuario.cmaterno] if parte
+    )
 
     return {
-        "nombre": " ".join(
-            parte for parte in [usuario.cnombres, usuario.cpaterno, usuario.cmaterno] if parte
-        ),
+        "nombre": (perfil_academico["nombre"] if perfil_academico else None) or nombre_respaldo,
         "correo": usuario.ccorreo,
-        "carrera": especialidad.cnombreespecialidad if especialidad else None,
+        "carrera": perfil_academico["carrera"] if perfil_academico else None,
         "facultad": None,
     }
 

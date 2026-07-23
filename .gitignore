@@ -1,5 +1,6 @@
 .env
 backend/venv/
+backend/backups/
 backend/uploads/*
 !backend/uploads/.gitkeep
 __pycache__/
