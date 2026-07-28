@@ -1,0 +1,286 @@
+/* ==========================================================================
+   Paleta institucional UNSAAC — tomada del diseño oficial (theme.css)
+   ========================================================================== */
+:root {
+  --unsaac-red: #8B1E1E;
+  --unsaac-red-hover: #6B1515;
+  --unsaac-red-dark: #7A1616;
+  --unsaac-gold: #D4A017;
+  --unsaac-gold-hover: #A07812;
+  --unsaac-gold-dark: #C9961A;
+  --unsaac-gray-page: #F5F5F5;
+  --unsaac-gray-border: #E0E0E0;
+  --unsaac-gray-dark: #2B2B2B;
+  --unsaac-text-primary: #1F2933;
+  --unsaac-text-secondary: #6B7280;
+
+  --banner-error-bg: #FEE2E2;
+  --banner-error-text: #991B1B;
+  --banner-error-border: #FCA5A5;
+
+  --banner-warning-bg: #FEF3C7;
+  --banner-warning-text: #92400E;
+  --banner-warning-border: #FCD34D;
+
+  --banner-neutral-bg: #F3F4F6;
+  --banner-neutral-text: #6B7280;
+  --banner-neutral-border: #D1D5DB;
+
+  --card-radius: 12px;
+}
+
+body {
+  background-color: var(--unsaac-gray-page);
+  color: var(--unsaac-text-primary);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ==========================================================================
+   Header / navbar públicos (catálogo y ficha)
+   ========================================================================== */
+.tupa-header {
+  background-color: var(--unsaac-red);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.tupa-header a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.tupa-header .logo-circulo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.tupa-header .subtitulo {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.btn-dorado {
+  background-color: var(--unsaac-gold);
+  border-color: var(--unsaac-gold);
+  color: var(--unsaac-gray-dark);
+  font-weight: 500;
+}
+
+.btn-dorado:hover {
+  background-color: var(--unsaac-gold-dark);
+  border-color: var(--unsaac-gold-dark);
+  color: var(--unsaac-gray-dark);
+}
+
+.btn-institucional {
+  background-color: var(--unsaac-red);
+  border-color: var(--unsaac-red);
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-institucional:hover {
+  background-color: var(--unsaac-red-dark);
+  border-color: var(--unsaac-red-dark);
+  color: #fff;
+}
+
+.titulo-institucional {
+  color: var(--unsaac-red);
+}
+
+/* ==========================================================================
+   Login
+   ========================================================================== */
+.login-panel-izquierdo {
+  background-color: var(--unsaac-red);
+  color: #fff;
+  min-height: 100vh;
+}
+
+.login-logo-grande {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin: 0 auto;
+}
+
+.login-logo-chico {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--unsaac-red);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin: 0 auto;
+}
+
+.login-beneficio .icono-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--unsaac-gold);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.form-control:focus {
+  border-color: var(--unsaac-red);
+  box-shadow: 0 0 0 0.2rem rgba(139, 30, 30, 0.15);
+}
+
+.input-con-icono {
+  position: relative;
+}
+
+.input-con-icono .bi {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+.input-con-icono .form-control {
+  padding-left: 2.5rem;
+}
+
+.input-con-icono .icono-alterna {
+  position: absolute;
+  left: auto;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #9ca3af;
+}
+
+.input-con-icono .icono-alterna .bi {
+  position: static;
+  transform: none;
+}
+
+.campo-invalido {
+  border-color: #dc3545 !important;
+}
+
+.campo-valido {
+  border-color: #10B981 !important;
+}
+
+.mensaje-error-campo {
+  color: #dc3545;
+  font-size: 0.875rem;
+}
+
+.aviso-seguridad {
+  background-color: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1e40af;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+/* ==========================================================================
+   Catálogo
+   ========================================================================== */
+.tarjeta-tramite {
+  transition: box-shadow 0.15s ease-in-out;
+  border-left: 4px solid var(--unsaac-red);
+  border-radius: var(--card-radius);
+  cursor: default;
+}
+
+.tarjeta-tramite:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.badge-costo {
+  background-color: var(--unsaac-gold);
+  color: var(--unsaac-gray-dark);
+}
+
+.badge-gratuito {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+/* ==========================================================================
+   Ficha del trámite
+   ========================================================================== */
+.icono-requisito {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(139, 30, 30, 0.1);
+  color: var(--unsaac-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tarjeta-info-rapida {
+  position: sticky;
+  top: 88px;
+}
+
+.info-rapida-item .bi {
+  color: var(--unsaac-red);
+}
+
+/* ==========================================================================
+   Seguimiento de expedientes (RF07) — 5 estados con color
+   ========================================================================== */
+.tarjeta-expediente {
+  border-left: 4px solid;
+  border-radius: var(--card-radius);
+}
+
+.tarjeta-expediente.estado-gris { border-left-color: #9CA3AF; }
+.tarjeta-expediente.estado-azul { border-left-color: #3B82F6; }
+.tarjeta-expediente.estado-naranja { border-left-color: #F59E0B; }
+.tarjeta-expediente.estado-verde { border-left-color: #10B981; }
+.tarjeta-expediente.estado-rojo { border-left-color: #EF4444; }
+
+.badge-estado-gris { background-color: #F3F4F6; color: #374151; }
+.badge-estado-azul { background-color: #DBEAFE; color: #1E40AF; }
+.badge-estado-naranja { background-color: #FEF3C7; color: #92400E; }
+.badge-estado-verde { background-color: #D1FAE5; color: #065F46; }
+.badge-estado-rojo { background-color: #FEE2E2; color: #991B1B; }
+
+.notificacion-item.no-leida {
+  background-color: #FEF2F2;
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo TUPA — UNSAAC</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="static/css/estilos.css" />
+</head>
+<body>
+  <header class="tupa-header">
+    <div class="container py-3 d-flex align-items-center justify-content-between">
+      <a href="catalogo.html" class="d-flex align-items-center gap-3">
+        <div class="logo-circulo">UNSAAC</div>
+        <div>
+          <h1 class="h6 mb-0 fw-semibold text-white">Catálogo TUPA</h1>
+          <p class="subtitulo">Universidad Nacional de San Antonio Abad del Cusco</p>
+        </div>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <a href="mis-tramites.html" class="btn btn-outline-light btn-sm">Mis trámites</a>
+        <a href="login.html" class="btn btn-dorado btn-sm">Iniciar sesión</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container py-4">
+    <div class="mb-4">
+      <h1 class="titulo-institucional mb-1" style="font-size: 1.75rem">Catálogo de Procedimientos TUPA</h1>
+      <p class="text-muted mb-0">Consulte todos los procedimientos administrativos y servicios disponibles</p>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="input-con-icono">
+              <i class="bi bi-search"></i>
+              <input
+                type="search"
+                class="form-control"
+                id="buscador"
+                placeholder="Buscar por nombre, código o palabra clave"
+              />
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filtro-unidad">
+              <option value="">Todas las unidades</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filtro-tipo" disabled>
+              <option value="">Tipo (no disponible)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="estado-carga" class="text-muted mb-3" hidden>Buscando...</div>
+    <div id="contador-resultados" class="text-muted mb-3" style="font-size: 0.875rem"></div>
+
+    <div id="sin-resultados" class="text-center py-5" hidden>
+      <i class="bi bi-file-earmark-text" style="font-size: 2.5rem; color: var(--unsaac-text-secondary)"></i>
+      <h3 class="h6 text-muted mt-3 mb-1">No se encontraron resultados</h3>
+      <p class="text-muted small mb-0">Intente ajustar los filtros de búsqueda</p>
+      <div id="contenedor-sugerencias" class="row g-3 mt-3 text-start"></div>
+    </div>
+
+    <div id="contenedor-resultados" class="row g-3"></div>
+  </div>
+
+  <script src="static/js/catalogo.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.env
+backend/venv/
+backend/backups/
+backend/uploads/*
+!backend/uploads/.gitkeep
+__pycache__/
+*.pyc
+node_modules/
+.vscode/
+.pytest_cache/
