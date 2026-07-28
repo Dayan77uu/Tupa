@@ -37,6 +37,7 @@ class Login(db.Model):
     nidtunidadorganizativa = db.Column(
         db.Integer, db.ForeignKey("tunidadorganizativa.nidtunidadorganizativa"), nullable=True
     )
+    activada = db.Column(db.Boolean, nullable=False, default=True)
 
     usuario = db.relationship("Usuario", backref="logins")
     perfil = db.relationship("Perfil")

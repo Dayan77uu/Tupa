@@ -526,6 +526,7 @@ CREATE TABLE `tlogin` (
   `intentos_fallidos` int NOT NULL DEFAULT '0',
   `fecha_bloqueo` datetime DEFAULT NULL,
   `nidtunidadorganizativa` int DEFAULT NULL,
+  `activada` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'FALSE = login pendiente de activacion (hash actual es un secreto aleatorio descartado, no una contrasena real). Ver POST /api/auth/activar-cuenta.',
   PRIMARY KEY (`clogin`),
   KEY `fk_tlogin_tperfil1_idx` (`nidtperfil`),
   KEY `cidtusuario` (`cidtusuario`),

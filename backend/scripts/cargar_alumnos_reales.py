@@ -13,20 +13,30 @@ cuenta de login, documentado aqui, no inventado.
 reingreso o doble carrera). Se usa el codigoalumno mas alto (mas reciente) de cada
 DNI para la cuenta unica de esa persona.
 
-Password compartida de prueba para los 2,3xx alumnos reales (NO es su password real,
-UNSAAC no expone ese dato -- ver mismo criterio que seed_dataset_sintetico.py).
+CORRECCION DE SEGURIDAD (ver scripts/invalidar_password_compartida.py): este
+script YA NO asigna ninguna contrasena de texto plano, ni siquiera de prueba.
+Cada cuenta se crea directamente con `activada=False` y el hash de un secreto
+aleatorio descartado -- nadie puede entrar hasta que el propio alumno la active
+via POST /api/auth/activar-cuenta (verifica codigoalumno + DNI contra talumno).
 
 Uso: backend/venv/Scripts/python.exe -m scripts.cargar_alumnos_reales
 """
 import re
+import secrets
 
 from app import create_app
 from app.extensions import db, bcrypt
 from app.models.usuario import Perfil, Usuario, Login
 from app.models.perfil_academico import Alumno
 
-PASSWORD_ALUMNOS_REALES = "Estudiante123!"
 DNI_VALIDO = re.compile(r"^\d{8}$")
+
+
+def _hash_secreto_descartable():
+    secreto = secrets.token_urlsafe(32)
+    hash_ = bcrypt.generate_password_hash(secreto, rounds=12).decode("utf-8")
+    del secreto
+    return hash_
 
 
 def run():
@@ -36,8 +46,6 @@ def run():
         if perfil_estudiante is None:
             print("ERROR: no existe el perfil ESTUDIANTE en tperfil.")
             return
-
-        hash_password = bcrypt.generate_password_hash(PASSWORD_ALUMNOS_REALES, rounds=12).decode("utf-8")
 
         alumnos = Alumno.query.all()
 
@@ -82,9 +90,10 @@ def run():
                     clogin=dni,
                     cidtusuario=dni,
                     nidtperfil=perfil_estudiante.nidtperfil,
-                    ccontrasenia=hash_password,
+                    ccontrasenia=_hash_secreto_descartable(),
                     intentos_fallidos=0,
                     nidtunidadorganizativa=None,
+                    activada=False,
                 )
             )
             creados += 1
@@ -96,8 +105,7 @@ def run():
         print(f"DNI con formato invalido (sin cuenta posible): {dni_invalido}")
         print(f"DNIs unicos validos: {len(mejor_por_dni)}")
         print(f"Cuentas ya existian: {ya_existian}")
-        print(f"Cuentas creadas: {creados}")
-        print(f"Password para todas las cuentas de alumno real: {PASSWORD_ALUMNOS_REALES}")
+        print(f"Cuentas creadas (pendientes de activacion): {creados}")
 
 
 if __name__ == "__main__":

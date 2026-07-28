@@ -8,6 +8,7 @@ const campoCorreo = document.getElementById("correo");
 const campoContrasena = document.getElementById("contrasena");
 const errorCorreo = document.getElementById("error-correo");
 const errorLogin = document.getElementById("error-login");
+const avisoActivacion = document.getElementById("aviso-activacion");
 const btnLogin = document.getElementById("btn-login");
 const contadorIntentos = document.getElementById("contador-intentos");
 const btnVerContrasena = document.getElementById("btn-ver-contrasena");
@@ -72,6 +73,7 @@ function redirigirSegunRol(rol) {
 form.addEventListener("submit", async (evento) => {
   evento.preventDefault();
   errorLogin.hidden = true;
+  avisoActivacion.hidden = true;
 
   const correo = campoCorreo.value.trim();
   const contrasena = campoContrasena.value;
@@ -94,6 +96,11 @@ form.addEventListener("submit", async (evento) => {
     const datos = await respuesta.json();
 
     if (!respuesta.ok) {
+      if (datos.cuenta_pendiente_activacion) {
+        avisoActivacion.hidden = false;
+        return;
+      }
+
       const bloqueado = (datos.error || "").toLowerCase().includes("bloqueada");
       mostrarBanner(bloqueado ? "bloqueo" : "error", datos.error || "No se pudo iniciar sesión.");
 
