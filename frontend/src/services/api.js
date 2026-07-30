@@ -13,10 +13,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Endpoints publicos donde un 401 significa "credenciales invalidas" o
+// "no coincide", NO "tu sesion expiro" -- ahi el 401 se debe mostrar inline
+// en el propio formulario, sin redirigir ni borrar el mensaje de error.
+const ENDPOINTS_AUTH_PUBLICOS = [
+  "/api/auth/login",
+  "/api/auth/registro",
+  "/api/auth/verificar-correo",
+  "/api/auth/activar-cuenta",
+];
+
 api.interceptors.response.use(
   (respuesta) => respuesta,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const esAuthPublico = ENDPOINTS_AUTH_PUBLICOS.some((ruta) => error.config?.url?.includes(ruta));
+    if (error.response && error.response.status === 401 && !esAuthPublico) {
       limpiarToken();
       window.location.href = "/login";
     }

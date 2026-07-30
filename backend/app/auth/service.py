@@ -225,10 +225,11 @@ def registrar(email: str, nombre: str, password: str, confirmar_password: str):
 
         try:
             _enviar_correo_verificacion(email, nombre, token)
-        except Exception:
+        except Exception as error:
             # El registro pendiente queda guardado igual; no revelamos detalles
-            # del error de envio en la respuesta al cliente.
-            pass
+            # del error de envio en la respuesta al cliente, pero si se loguea
+            # en el servidor para poder diagnosticar fallos de entrega.
+            print(f"[correo verificacion] fallo el envio a {email}: {error}")
 
     return 201, {"mensaje": MENSAJE_REGISTRO_RECIBIDO}
 
