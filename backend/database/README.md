@@ -7,8 +7,9 @@ sin depender de una copia manual de la máquina original.
   incluyendo `texpediente`, `tdocumentoexpediente`, `contador_expediente`
   (Sprint 2), `tmovimientoexpediente`, `tnotificacion` (Sprint 3),
   `tflujoderivacion` + columnas de oficina en `texpediente`/`tlogin` (Sprint 4),
-  `tperfildemo`/`thistorialcatalogo` (Sprint 5) y
-  `talumno.correo_institucional_generado` (Sprint 6).
+  `tperfildemo`/`thistorialcatalogo` (Sprint 5),
+  `talumno.correo_institucional_generado` (Sprint 6) y
+  `tusuario_pendiente` (registro con verificación por correo, Sprint 6).
 - `catalogo_seed.sql` — datos de referencia públicos del catálogo TUPA (perfiles,
   unidades organizativas, trámites, requisitos, montos, feriados) **y los 5
   estudiantes sintéticos de `tperfildemo`** (ver más abajo — no son datos
@@ -40,7 +41,26 @@ login administrativo, `tflujoderivacion`) y
 [005_dataset_sintetico.sql](../migrations/005_dataset_sintetico.sql)
 (`tperfildemo`, `thistorialcatalogo`) y
 [006_correo_institucional_generado.sql](../migrations/006_correo_institucional_generado.sql)
-(`talumno.correo_institucional_generado`) — no hace falta aplicarlas aparte.
+(`talumno.correo_institucional_generado`) y
+[007_activacion_cuenta.sql](../migrations/007_activacion_cuenta.sql)
+(`tlogin.activada`) y
+[008_registro_verificacion.sql](../migrations/008_registro_verificacion.sql)
+(`tusuario_pendiente`) — no hace falta aplicarlas aparte.
+
+### Registro con verificación por correo (Sprint 6, rama `pablo`)
+
+Como `talumno` está vacía (ver más abajo) y no hay fuente real de datos de
+alumnos, `POST /api/auth/registro` + `POST /api/auth/verificar-correo` son
+hoy la **única vía real** para que un estudiante cree una cuenta: registro →
+correo con enlace (Flask-Mail vía Gmail, contraseña de aplicación) →
+verificación → cuenta activa en `tusuario`/`tlogin` directamente (sin pasar
+por `activar-cuenta.html`, que se mantiene intacto por si en el futuro
+aparece una fuente real de `talumno`). Las cuentas creadas así usan
+`cidtusuario` con prefijo `REG` (ej. `REG0000001`) para distinguirlas a
+simple vista de los DNIs reales (8 dígitos) y de las cuentas sintéticas de
+demo. Configuración de correo en `backend/.env` (`MAIL_*`, ver
+`.env.example`) — `MAIL_PASSWORD` es una contraseña de aplicación de Gmail
+(16 caracteres), no la contraseña normal de la cuenta.
 
 ### Alumnos reales con login (Sprint 6)
 

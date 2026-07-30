@@ -5,6 +5,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { ROLES_GESTION, ROLES_PERSONAL_ADMINISTRATIVO, ROL_ADMINISTRADOR } from "./utils/roles";
 
 import Login from "./pages/Login";
+import Registro from "./pages/Registro";
+import VerificarCorreo from "./pages/VerificarCorreo";
 import ActivarCuenta from "./pages/ActivarCuenta";
 import Catalogo from "./pages/Catalogo";
 import FichaTramite from "./pages/FichaTramite";
@@ -30,6 +32,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RaizRedirect />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
+        <Route path="/verificar-correo" element={<VerificarCorreo />} />
         <Route path="/activar-cuenta" element={<ActivarCuenta />} />
         <Route path="/catalogo" element={<Catalogo />} />
         <Route path="/ficha/:codigo" element={<FichaTramite />} />

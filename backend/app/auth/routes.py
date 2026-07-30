@@ -25,3 +25,24 @@ def activar_cuenta():
 
     status_code, body = service.activar_cuenta(codigoalumno, dni, nueva_contrasena)
     return jsonify(body), status_code
+
+
+@auth_bp.post("/registro")
+def registro():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "")
+    nombre = data.get("nombre", "")
+    password = data.get("password", "")
+    confirmar_password = data.get("confirmar_password", "")
+
+    status_code, body = service.registrar(email, nombre, password, confirmar_password)
+    return jsonify(body), status_code
+
+
+@auth_bp.post("/verificar-correo")
+def verificar_correo():
+    data = request.get_json(silent=True) or {}
+    token = data.get("token", "")
+
+    status_code, body = service.verificar_correo(token)
+    return jsonify(body), status_code

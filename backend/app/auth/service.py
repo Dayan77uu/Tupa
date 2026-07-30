@@ -1,13 +1,16 @@
 import re
+import secrets
 from datetime import datetime, timedelta
 
 import jwt
+from flask_mail import Message
 from sqlalchemy import func
 
-from app.extensions import db, bcrypt
+from app.extensions import db, bcrypt, mail
 from app.config import Config
-from app.models.usuario import Usuario, Login, RegistroAuditoria
+from app.models.usuario import Usuario, Login, Perfil, RegistroAuditoria
 from app.models.perfil_academico import Alumno
+from app.models.registro import UsuarioPendiente
 
 DOMINIO_INSTITUCIONAL = "@unsaac.edu.pe"
 MAX_INTENTOS_FALLIDOS = 5
@@ -18,8 +21,10 @@ MENSAJE_ERROR_SISTEMA = "Error de conexión. Intente nuevamente."
 MENSAJE_CUENTA_NO_ACTIVADA = "Esta cuenta aún no ha sido activada."
 MENSAJE_DATOS_NO_COINCIDEN = "Los datos ingresados no coinciden con ningún registro."
 MENSAJE_CUENTA_YA_ACTIVADA = "Esta cuenta ya fue activada. Usa \"Olvidé mi contraseña\"."
+MENSAJE_REGISTRO_RECIBIDO = "Si el correo es válido y no está registrado, te enviamos un enlace de verificación."
 
 REGEX_CONTRASENA_VALIDA = re.compile(r"^(?=.*[A-Z])(?=.*\d).{8,}$")
+HORAS_EXPIRACION_TOKEN_REGISTRO = 24
 
 
 def dominio_valido(correo: str) -> bool:
@@ -148,3 +153,127 @@ def activar_cuenta(codigoalumno: str, dni: str, nueva_contrasena: str):
     db.session.commit()
 
     return 200, {"mensaje": "Cuenta activada correctamente. Ya puedes iniciar sesión."}
+
+
+def _generar_cidtusuario_registro() -> str:
+    """cidtusuario para cuentas auto-registradas (sin talumno detras): prefijo
+    'REG' + secuencial, para distinguirlas a simple vista de los DNIs reales
+    (8 digitos) y de las cuentas sinteticas de demo (00000001-5, 90000001-4)."""
+    ultimo = (
+        Usuario.query.filter(Usuario.cidtusuario.like("REG%"))
+        .order_by(Usuario.cidtusuario.desc())
+        .first()
+    )
+    siguiente = int(ultimo.cidtusuario[3:]) + 1 if ultimo else 1
+    return f"REG{siguiente:07d}"
+
+
+def _enviar_correo_verificacion(email: str, nombre: str, token: str) -> None:
+    enlace = f"{Config.FRONTEND_URL}/verificar-correo?token={token}"
+    mensaje = Message(
+        subject="Verifica tu correo - Plataforma TUPA UNSAAC",
+        recipients=[email],
+        body=(
+            f"Hola {nombre},\n\n"
+            "Gracias por registrarte en la Plataforma TUPA UNSAAC.\n"
+            f"Verifica tu correo entrando a este enlace (valido por {HORAS_EXPIRACION_TOKEN_REGISTRO} horas):\n"
+            f"{enlace}\n\n"
+            "Si no solicitaste esto, ignora este correo."
+        ),
+    )
+    mail.send(mensaje)
+
+
+def registrar(email: str, nombre: str, password: str, confirmar_password: str):
+    """Registro con verificacion por correo (Sprint 6): unica via real para que
+    un estudiante cree cuenta hoy, dado que talumno esta vacia. No reemplaza
+    activar-cuenta.html. No confirma ni niega si el correo ya existia."""
+
+    if not email or not nombre or not password or not confirmar_password:
+        return 400, {"error": "Todos los campos son requeridos"}
+
+    email = email.strip().lower()
+    nombre = nombre.strip()
+
+    if not dominio_valido(email):
+        return 400, {"error": "Solo se aceptan correos institucionales UNSAAC"}
+
+    if password != confirmar_password:
+        return 400, {"error": "Las contraseñas no coinciden"}
+
+    if not contrasena_valida(password):
+        return 400, {
+            "error": "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número"
+        }
+
+    ya_existe = (
+        Usuario.query.filter(func.lower(Usuario.ccorreo) == email).first() is not None
+        or UsuarioPendiente.query.filter_by(email=email).first() is not None
+    )
+
+    if not ya_existe:
+        token = secrets.token_hex(32)
+        pendiente = UsuarioPendiente(
+            email=email,
+            nombre=nombre,
+            password_hash=bcrypt.generate_password_hash(password, rounds=12).decode("utf-8"),
+            token=token,
+            token_expira=datetime.utcnow() + timedelta(hours=HORAS_EXPIRACION_TOKEN_REGISTRO),
+        )
+        db.session.add(pendiente)
+        db.session.commit()
+
+        try:
+            _enviar_correo_verificacion(email, nombre, token)
+        except Exception:
+            # El registro pendiente queda guardado igual; no revelamos detalles
+            # del error de envio en la respuesta al cliente.
+            pass
+
+    return 201, {"mensaje": MENSAJE_REGISTRO_RECIBIDO}
+
+
+def verificar_correo(token: str):
+    if not token:
+        return 400, {"error": "Token requerido"}
+
+    pendiente = UsuarioPendiente.query.filter_by(token=token).first()
+    if pendiente is None:
+        return 400, {"error": "El enlace de verificación no es válido."}
+
+    if pendiente.token_expira < datetime.utcnow():
+        return 400, {"error": "El enlace de verificación expiró. Vuelve a registrarte."}
+
+    perfil_estudiante = Perfil.query.filter_by(cdescripcionperfil="ESTUDIANTE").first()
+    if perfil_estudiante is None:
+        return 500, {"error": MENSAJE_ERROR_SISTEMA}
+
+    cidtusuario = _generar_cidtusuario_registro()
+
+    db.session.add(
+        Usuario(
+            cidtusuario=cidtusuario,
+            nidttipousuario=1,
+            cdni=None,
+            ccodigo=None,
+            cnombres=pendiente.nombre,
+            cpaterno=None,
+            cmaterno=None,
+            ccorreo=pendiente.email,
+        )
+    )
+    db.session.add(
+        Login(
+            clogin=cidtusuario,
+            cidtusuario=cidtusuario,
+            nidtperfil=perfil_estudiante.nidtperfil,
+            ccontrasenia=pendiente.password_hash,
+            intentos_fallidos=0,
+            nidtunidadorganizativa=None,
+            activada=True,
+        )
+    )
+    db.session.delete(pendiente)
+    db.session.commit()
+
+    return 200, {"mensaje": "Correo verificado. Tu cuenta ya está activa, ya puedes iniciar sesión."}

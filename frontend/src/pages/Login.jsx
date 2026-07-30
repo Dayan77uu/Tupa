@@ -141,10 +141,14 @@ export default function Login() {
               {cargando ? "Ingresando..." : "Ingresar"}
             </button>
 
-            <div className="text-center mb-3">
+            <div className="text-center mb-2">
               <Link to="/catalogo" className="small text-decoration-none">
                 Consultar el catálogo TUPA sin iniciar sesión
               </Link>
+            </div>
+            <div className="text-center mb-3">
+              <span className="small text-secondary">¿No tienes cuenta? </span>
+              <Link to="/registro" className="small text-decoration-none">Regístrate</Link>
             </div>
           </form>
         </div>
