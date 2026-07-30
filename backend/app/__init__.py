@@ -13,7 +13,7 @@ def create_app():
     bcrypt.init_app(app)
 
     from flask_cors import CORS
-    CORS(app)
+    CORS(app, origins=["http://localhost:5173"])
 
     from app.auth.routes import auth_bp
     from app.catalogo.routes import catalogo_bp
