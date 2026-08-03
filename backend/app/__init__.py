@@ -45,9 +45,6 @@ def create_app():
     def archivo_demasiado_grande(_error):
         return jsonify({"error": "El archivo supera el tamano maximo permitido"}), 413
 
-    return app
-
-
     @app.after_request
     def _force_cors_headers(response):
         # Añade encabezados CORS por si la configuración automática no los aplica
@@ -64,3 +61,5 @@ def create_app():
         except Exception:
             pass
         return response
+
+    return app
