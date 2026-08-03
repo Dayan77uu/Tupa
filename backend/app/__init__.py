@@ -56,10 +56,7 @@ def create_app():
         # Añade encabezados CORS por si la configuración automática no los aplica
         try:
             origin = request.headers.get("Origin")
-            allowed = app.config.get("CORS_ORIGINS", [])
-            if isinstance(allowed, str):
-                allowed = [o.strip() for o in allowed.split(",") if o.strip()]
-            if origin and ("*" in allowed or origin in allowed):
+            if origin:
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
                 response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
