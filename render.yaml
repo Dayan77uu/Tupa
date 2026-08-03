@@ -26,7 +26,7 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         value: documentos-tupa
       - key: CORS_ORIGINS
-        sync: false
+        value: "https://tupa-btr.pages.dev,http://localhost:8000,http://127.0.0.1:8000"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
