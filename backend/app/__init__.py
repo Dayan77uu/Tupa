@@ -4,6 +4,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import Config
 from app.extensions import db
+from flask import request
 
 
 def create_app():
@@ -45,3 +46,21 @@ def create_app():
         return jsonify({"error": "El archivo supera el tamano maximo permitido"}), 413
 
     return app
+
+
+    @app.after_request
+    def _force_cors_headers(response):
+        # Añade encabezados CORS por si la configuración automática no los aplica
+        try:
+            origin = request.headers.get("Origin")
+            allowed = app.config.get("CORS_ORIGINS", [])
+            if isinstance(allowed, str):
+                allowed = [o.strip() for o in allowed.split(",") if o.strip()]
+            if origin and ("*" in allowed or origin in allowed):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+        except Exception:
+            pass
+        return response
