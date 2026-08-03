@@ -1,4 +1,4 @@
-const API_BASE_NOTIF = "http://127.0.0.1:5000";
+const API_BASE_NOTIF = window.TUPA_CONFIG.API_BASE_URL;
 
 function inicializarNotificaciones() {
   const contenedor = document.getElementById("notificaciones-widget");

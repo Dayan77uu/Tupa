@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS tdocumentoexpediente (
 --    tamano maximo). Se agregan con defaults razonables (RF06 exige PDF/JPG/PNG, 5 MB).
 -- ---------------------------------------------------------------------------------------
 ALTER TABLE trequisitotramite
-  ADD COLUMN IF NOT EXISTS bobligatorio BOOLEAN NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS bobligatorio BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS cformatospermitidos VARCHAR(50) NOT NULL DEFAULT 'pdf,jpg,png',
   ADD COLUMN IF NOT EXISTS nmaxtamaniomb INT NOT NULL DEFAULT 5;
 
@@ -81,5 +81,5 @@ ALTER TABLE trequisitotramite
 -- ---------------------------------------------------------------------------------------
 INSERT INTO tferiado (dfecha, cdescripcion, brecurrente)
 VALUES
-  ('2026-07-28', 'DIA DE LA INDEPENDENCIA', 1),
-  ('2026-07-29', 'FIESTAS PATRIAS', 1) ON CONFLICT DO NOTHING;
+  ('2026-07-28', 'DIA DE LA INDEPENDENCIA', TRUE),
+  ('2026-07-29', 'FIESTAS PATRIAS', TRUE) ON CONFLICT DO NOTHING;

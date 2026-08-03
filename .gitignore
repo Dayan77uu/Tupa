@@ -1,4 +1,7 @@
 .env
+.env.*
+!.env.example
+!**/.env.example
 backend/venv/
 backend/backups/
 backend/uploads/*
@@ -8,3 +11,15 @@ __pycache__/
 node_modules/
 .vscode/
 .pytest_cache/
+
+# PostgreSQL local (datos y logs de ejecución)
+pg_test_db_1/
+pgdata-*/
+logfile
+*.log
+
+# Entornos y cachés locales adicionales
+.venv/
+venv/
+.coverage
+htmlcov/

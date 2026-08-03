@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS tnotificacion (
   id_usuario VARCHAR(10)  NOT NULL,
   nro_expediente VARCHAR(20)  NOT NULL,
   mensaje VARCHAR(255) NOT NULL,
-  leida BOOLEAN NOT NULL DEFAULT 0,
+  leida BOOLEAN NOT NULL DEFAULT FALSE,
   fecha_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_notificacion_usuario FOREIGN KEY (id_usuario) REFERENCES tusuario (cidtusuario),
   CONSTRAINT fk_notificacion_expediente FOREIGN KEY (nro_expediente) REFERENCES texpediente (cnroexpediente)

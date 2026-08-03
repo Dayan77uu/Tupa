@@ -1,0 +1,16 @@
+# DOCUMENTACIÓN Y BITÁCORA DEL AGENTE
+**Rama:** franshesco
+**Objetivo:** Migrar la base de datos de MySQL a PostgreSQL (Supabase) y cambiar el almacenamiento de archivos locales a Supabase Storage, para permitir el despliegue gratuito en Render y Cloudflare.
+
+## Historial de Cambios y Decisiones:
+
+**Fecha:** 2026-08-01
+- **Decisión Arquitectónica:** El equipo decidió descartar Azure (para evitar configurar Windows Server) y usar la arquitectura "Serverless/PaaS":
+  - Frontend -> Cloudflare Pages
+  - Backend -> Render (Web Service gratuito)
+  - Base de Datos -> Supabase (PostgreSQL)
+  - Almacenamiento -> Supabase Storage
+- **Acción:** Cambio a la rama `franshesco` como único entorno de trabajo.
+- **Acción:** Creación de este archivo de documentación para mantener informados a todos los miembros del equipo.
+
+*(Este archivo se actualizará conforme se realicen las modificaciones en el código).*

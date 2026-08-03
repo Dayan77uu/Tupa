@@ -1,26 +1,62 @@
 import os
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-class Config:
-    DB_HOST = os.environ["DB_HOST"]
-    DB_PORT = os.environ.get("DB_PORT", "3306")
-    DB_USER = os.environ["DB_USER"]
-    DB_PASSWORD = os.environ["DB_PASSWORD"]
-    DB_NAME = os.environ["DB_NAME"]
-    JWT_SECRET = os.environ["JWT_SECRET"]
+def _database_url():
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL es obligatoria. Configúrala con una URL PostgreSQL."
+        )
 
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        "?charset=utf8mb4"
-    )
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg2://" + url[len("postgresql://"):]
+
+    parsed = urlsplit(url)
+    if parsed.hostname and parsed.hostname.endswith("supabase.co"):
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query.setdefault("sslmode", "require")
+        url = urlunsplit(parsed._replace(query=urlencode(query)))
+    return url
+
+
+class Config:
+    JWT_SECRET = os.environ.get("JWT_SECRET_KEY") or os.environ["JWT_SECRET"]
+
+    SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
+        ).split(",")
+        if origin.strip()
+    ]
 
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     FORMATOS_PERMITIDOS_DEFAULT = {"pdf", "jpg", "jpeg", "png"}
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get(
+        "SUPABASE_SERVICE_ROLE_KEY"
+    )
+    SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "documentos-tupa")
+    STORAGE_BACKEND = os.environ.get(
+        "STORAGE_BACKEND",
+        "supabase" if SUPABASE_URL and SUPABASE_SECRET_KEY else "local",
+    )
 
     # Opcionales: si no estan configuradas, las notificaciones quedan en modo
     # simulado (se registran en BD y se imprime en consola, sin enviar correo real).
@@ -28,3 +64,4 @@ class Config:
     SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
     SMTP_USER = os.environ.get("SMTP_USER")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_FROM = os.environ.get("SMTP_FROM") or SMTP_USER

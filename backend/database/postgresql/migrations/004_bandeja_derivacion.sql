@@ -26,8 +26,15 @@
 -- 1. Oficina actual del expediente (para la bandeja, RF10)
 -- ---------------------------------------------------------------------------------------
 ALTER TABLE texpediente
-  ADD COLUMN IF NOT EXISTS nidtoficinaactual INT NULL,
-  ADD CONSTRAINT fk_expediente_oficina FOREIGN KEY (nidtoficinaactual) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  ADD COLUMN IF NOT EXISTS nidtoficinaactual INT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_expediente_oficina') THEN
+    ALTER TABLE texpediente ADD CONSTRAINT fk_expediente_oficina
+      FOREIGN KEY (nidtoficinaactual) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  END IF;
+END $$;
 
 -- Oficina responsable real cuando existe (toma la primera si hay mas de una)
 UPDATE texpediente e SET nidtoficinaactual = ut.oficina FROM (
@@ -51,8 +58,15 @@ ALTER TABLE texpediente
 -- 3. Oficina asignada a cada login administrativo (no existia ningun vinculo)
 -- ---------------------------------------------------------------------------------------
 ALTER TABLE tlogin
-  ADD COLUMN IF NOT EXISTS nidtunidadorganizativa INT NULL,
-  ADD CONSTRAINT fk_login_oficina FOREIGN KEY (nidtunidadorganizativa) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  ADD COLUMN IF NOT EXISTS nidtunidadorganizativa INT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_login_oficina') THEN
+    ALTER TABLE tlogin ADD CONSTRAINT fk_login_oficina
+      FOREIGN KEY (nidtunidadorganizativa) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  END IF;
+END $$;
 
 -- Usuarios de prueba existentes (no-estudiante) -> SEDE CENTRAL CUSCO.
 -- No hay dato real de a que oficina pertenece cada uno; es una asignacion de prueba.
@@ -87,6 +101,16 @@ VALUES ('PA88401484E', 1, 2) ON CONFLICT DO NOTHING;
 -- ---------------------------------------------------------------------------------------
 ALTER TABLE tmovimientoexpediente
   ADD COLUMN IF NOT EXISTS oficina_anterior INT NULL,
-  ADD COLUMN IF NOT EXISTS oficina_nueva INT NULL,
-  ADD CONSTRAINT fk_movimiento_oficina_anterior FOREIGN KEY (oficina_anterior) REFERENCES tunidadorganizativa (nidtunidadorganizativa),
-  ADD CONSTRAINT fk_movimiento_oficina_nueva FOREIGN KEY (oficina_nueva) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  ADD COLUMN IF NOT EXISTS oficina_nueva INT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_movimiento_oficina_anterior') THEN
+    ALTER TABLE tmovimientoexpediente ADD CONSTRAINT fk_movimiento_oficina_anterior
+      FOREIGN KEY (oficina_anterior) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_movimiento_oficina_nueva') THEN
+    ALTER TABLE tmovimientoexpediente ADD CONSTRAINT fk_movimiento_oficina_nueva
+      FOREIGN KEY (oficina_nueva) REFERENCES tunidadorganizativa (nidtunidadorganizativa);
+  END IF;
+END $$;

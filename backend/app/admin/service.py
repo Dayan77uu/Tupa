@@ -1,7 +1,7 @@
-import os
 from datetime import datetime
 
-from app.config import Config
+from app import storage_service
+from app.storage_service import StorageError
 from app.extensions import db
 from app.models.usuario import Usuario, Login
 from app.models.expediente import Expediente, DocumentoExpediente
@@ -150,8 +150,11 @@ def obtener_ruta_documento(id_documento: int, cidtusuario: str):
     if oficina is None or documento.expediente.nidtoficinaactual != oficina:
         return 403, {"error": MENSAJE_NO_AUTORIZADO}
 
-    ruta_absoluta = os.path.join(Config.UPLOAD_FOLDER, documento.crutaarchivo)
-    return ruta_absoluta, documento.cnombrearchivooriginal
+    try:
+        contenido = storage_service.read(documento.crutaarchivo)
+    except StorageError:
+        return 502, {"error": "No se pudo recuperar el documento"}
+    return contenido, documento.cnombrearchivooriginal, documento.cformatoarchivo
 
 
 def tomar_decision(

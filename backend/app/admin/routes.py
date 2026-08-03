@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from flask import Blueprint, request, jsonify, g, send_file
 
 from app.auth.decorators import (
@@ -38,8 +40,19 @@ def ver_documento(id_documento):
         status_code, body = resultado
         return jsonify(body), status_code
 
-    ruta_absoluta, nombre_original = resultado
-    return send_file(ruta_absoluta, as_attachment=False, download_name=nombre_original)
+    contenido, nombre_original, formato = resultado
+    mimetype = {
+        "pdf": "application/pdf",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+    }.get(formato, "application/octet-stream")
+    return send_file(
+        BytesIO(contenido),
+        as_attachment=False,
+        download_name=nombre_original,
+        mimetype=mimetype,
+    )
 
 
 @admin_bp.post("/admin/expedientes/<nro_expediente>/decision")

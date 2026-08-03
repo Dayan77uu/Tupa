@@ -1,7 +1,4 @@
 
-UPDATE pg_cast SET castcontext = 'i' WHERE castsource = 'integer'::regtype AND casttarget = 'boolean'::regtype;
-
-
 CREATE TABLE contador_expediente (
   anio int NOT NULL,
   tipo VARCHAR(10) NOT NULL,
@@ -265,7 +262,7 @@ CREATE TABLE tferiado (
   nidtferidado SERIAL,
   dfecha date NOT NULL,
   cdescripcion VARCHAR(100) DEFAULT NULL,
-  brecurrente BOOLEAN DEFAULT '0',
+  brecurrente BOOLEAN DEFAULT FALSE,
   PRIMARY KEY (nidtferidado),
   UNIQUE (dfecha)
 );
@@ -303,7 +300,7 @@ CREATE TABLE tlogin (
   intentos_fallidos int NOT NULL DEFAULT '0',
   fecha_bloqueo TIMESTAMP DEFAULT NULL,
   nidtunidadorganizativa int DEFAULT NULL,
-  activada BOOLEAN NOT NULL DEFAULT '1' ,
+  activada BOOLEAN NOT NULL DEFAULT TRUE,
   PRIMARY KEY (clogin)
 );
 
@@ -357,7 +354,7 @@ CREATE TABLE tnotificacion (
   id_usuario VARCHAR(10)  NOT NULL,
   nro_expediente VARCHAR(20)  NOT NULL,
   mensaje VARCHAR(255) NOT NULL,
-  leida BOOLEAN NOT NULL DEFAULT '0',
+  leida BOOLEAN NOT NULL DEFAULT FALSE,
   fecha_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id_notificacion)
 );
@@ -420,7 +417,7 @@ CREATE TABLE trequisitotramite (
   nidtrequisitotramite SERIAL,
   ccodigo VARCHAR(20) NOT NULL,
   cdescripcionrequisito VARCHAR(400)  DEFAULT NULL,
-  bobligatorio BOOLEAN NOT NULL DEFAULT '1',
+  bobligatorio BOOLEAN NOT NULL DEFAULT TRUE,
   cformatospermitidos VARCHAR(50) NOT NULL DEFAULT 'pdf,jpg,png',
   nmaxtamaniomb int NOT NULL DEFAULT '5',
   PRIMARY KEY (nidtrequisitotramite)

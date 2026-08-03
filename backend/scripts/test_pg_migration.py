@@ -2,6 +2,10 @@ import os
 import sys
 import glob
 
+__test__ = False
+
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 try:
     import psycopg2
 except ImportError:
@@ -16,50 +20,98 @@ def run_sql_file(cursor, filepath):
     if sql.strip():
         cursor.execute(sql)
 
+def get_db_stats(cursor):
+    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;")
+    tables = cursor.fetchall()
+
+    cursor.execute("SELECT table_name, column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name, ordinal_position;")
+    columns = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT c.relname AS table_name, con.conname AS constraint_name, con.contype AS constraint_type, pg_get_constraintdef(con.oid, true) AS definition
+        FROM pg_constraint con
+        JOIN pg_class c ON con.conrelid = c.oid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+        ORDER BY c.relname, con.conname;
+    """)
+    constraints = cursor.fetchall()
+    fk_count = len([c for c in constraints if c[2] == 'f'])
+
+    cursor.execute("SELECT indexname, tablename, indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY indexname, tablename;")
+    indexes = cursor.fetchall()
+
+    cursor.execute("SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = 'public' ORDER BY c.relname;")
+    sequences = cursor.fetchall()
+
+    counts = (len(tables), len(columns), fk_count, len(indexes), len(sequences))
+    snapshot = {
+        "tables": tables,
+        "columns": columns,
+        "constraints": constraints,
+        "indexes": indexes,
+        "sequences": sequences
+    }
+    return counts, snapshot
+
 def run_migration_file(cursor, filepath):
-    import re
     with open(filepath, 'r', encoding='utf-8') as f:
         sql = f.read()
-    
-    # Remove single line comments
-    sql = re.sub(r'--.*?\n', '\n', sql)
-    # Remove multi-line comments
-    sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
-    
-    statements = [s.strip() for s in sql.split(';') if s.strip()]
-    for stmt in statements:
-        try:
-            with cursor.connection.cursor() as stmt_cursor:
-                stmt_cursor.execute(stmt)
-        except Exception as e:
-            cursor.connection.rollback()
-            # If it's a structural duplication error or empty query, ignore it
-            err_str = str(e).lower()
-            if "ya existe" in err_str or "already exists" in err_str or "duplicate" in err_str or "duplicada" in err_str or "empty query" in err_str:
-                pass
-            else:
-                raise e
+    if sql.strip():
+        cursor.execute(sql)
 
 def test_migration():
+    import getpass
     db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        print("ERROR: DATABASE_URL environment variable is not set.", file=sys.stderr)
-        sys.exit(1)
 
+    conn_kwargs = None
+    if not db_url:
+        if not sys.stdin.isatty():
+            print("ERROR: DATABASE_URL environment variable is not set and execution is not interactive.", file=sys.stderr)
+            sys.exit(1)
+        print("La variable DATABASE_URL no está definida.")
+        print("Por favor, ingresa los datos para conectarse a PostgreSQL local.")
+        host = input("Host [127.0.0.1]: ").strip() or "127.0.0.1"
+        port = input("Puerto [5433]: ").strip() or "5433"
+        db = input("Base de datos [tupa_test_1]: ").strip() or "tupa_test_1"
+        user = input("Usuario [postgres]: ").strip() or "postgres"
+        pwd = getpass.getpass(f"Contraseña para {user}: ")
+        conn_kwargs = {
+            "host": host,
+            "port": port,
+            "dbname": db,
+            "user": user,
+            "password": pwd
+        }
+        print(f"\nConectando a {host}:{port}/{db} como {user}...")
+
+    conn = None
+    cursor = None
     try:
-        conn = psycopg2.connect(db_url)
-        conn.autocommit = True
-        # We need isolation_level = AUTOCOMMIT to create databases if we wanted, 
-        # but we assume the db exists and we just run schema in a transaction block
+        if db_url:
+            conn = psycopg2.connect(db_url)
+        else:
+            conn = psycopg2.connect(**conn_kwargs)
+        conn.autocommit = False
         cursor = conn.cursor()
-        
+
+        cursor.execute("SELECT current_database()")
+        connected_db = cursor.fetchone()[0]
+
+        if connected_db != "tupa_test_1":
+            raise RuntimeError(
+                f"Base no autorizada: {connected_db}. "
+                "Esta prueba solo puede ejecutarse en tupa_test_1."
+            )
+
+        initial_counts, initial_snapshot = get_db_stats(cursor)
+
         print("1. Ejecutando schema.sql...")
-        run_sql_file(cursor, "backend/database/postgresql/schema.sql")
+        run_sql_file(cursor, os.path.join(BACKEND_DIR, "database", "postgresql", "schema.sql"))
         
         print("2. Ejecutando catalogo_seed.sql...")
-        run_sql_file(cursor, "backend/database/postgresql/catalogo_seed.sql")
+        run_sql_file(cursor, os.path.join(BACKEND_DIR, "database", "postgresql", "catalogo_seed.sql"))
         
-        # Sincronizar secuencias
         print(" -> Sincronizando secuencias...")
         cursor.execute("SELECT table_name, column_name FROM information_schema.columns WHERE column_default LIKE 'nextval%' AND table_schema='public';")
         for table, col in cursor.fetchall():
@@ -69,49 +121,54 @@ def test_migration():
                 print(f"    Error sincronizando {table}.{col}: {e}")
                 
         print("3. Ejecutando migraciones...")
-        migrations = sorted(glob.glob("backend/database/postgresql/migrations/*.sql"))
+        migrations = sorted(glob.glob(os.path.join(BACKEND_DIR, "database", "postgresql", "migrations", "*.sql")))
         for mig in migrations:
             print(f"   -> {os.path.basename(mig)}")
             run_migration_file(cursor, mig)
         
-        # Test concurrent safe sequence insert logic using ON CONFLICT logic (needs valid syntax in backend)
-        
-        # Fetch stats
-        cursor.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
-        tables_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT count(*) FROM information_schema.columns WHERE table_schema='public';")
-        cols_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT count(*) FROM information_schema.table_constraints WHERE constraint_schema='public' AND constraint_type='FOREIGN KEY';")
-        fk_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT count(*) FROM pg_indexes WHERE schemaname='public';")
-        indexes_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = 'public';")
-        seq_count = cursor.fetchone()[0]
-        
-        print("\n--- RECUENTOS DESDE POSTGRESQL ---")
-        print(f"Tablas: {tables_count}")
-        print(f"Columnas: {cols_count}")
-        print(f"Claves Foraneas: {fk_count}")
-        print(f"Indices: {indexes_count}")
-        print(f"Secuencias: {seq_count}")
-        
-        # We rollback at the end so it can be re-run on the same empty database for validation
-        print("\nHaciendo ROLLBACK para dejar la base de datos limpia...")
+        post_run_counts, _ = get_db_stats(cursor)
+        print("\n--- RECUENTOS DESDE POSTGRESQL (PRE-ROLLBACK) ---")
+        print(f"Tablas: {post_run_counts[0]}")
+        print(f"Columnas: {post_run_counts[1]}")
+        print(f"Claves Foraneas: {post_run_counts[2]}")
+        print(f"Indices: {post_run_counts[3]}")
+        print(f"Secuencias: {post_run_counts[4]}")
+
+        print("\nEjecutando ROLLBACK para restaurar el estado inicial...")
         conn.rollback()
+
+        final_counts, final_snapshot = get_db_stats(cursor)
+        if final_snapshot != initial_snapshot:
+            print("Diferencias detectadas post-rollback:", file=sys.stderr)
+            for k in initial_snapshot.keys():
+                if initial_snapshot[k] != final_snapshot[k]:
+                    print(f"--- Diferencia en {k} ---", file=sys.stderr)
+                    print("Inicial:", initial_snapshot[k], file=sys.stderr)
+                    print("Final:", final_snapshot[k], file=sys.stderr)
+            raise Exception("El rollback no fue efectivo. El estado del esquema difiere del inicial.")
+
+        print("ROLLBACK verificado: los cambios de la prueba fueron revertidos.")
         print("Prueba completada exitosamente.")
         
     except Exception as e:
         print(f"Error durante la migracion: {e}", file=sys.stderr)
-        if 'conn' in locals():
-            conn.rollback()
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         sys.exit(1)
     finally:
-        if 'conn' in locals():
-            conn.close()
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     test_migration()

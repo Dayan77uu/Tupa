@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:5000";
+const API_BASE = window.TUPA_CONFIG.API_BASE_URL;
 const DEBOUNCE_MS = 300;
 
 const buscador = document.getElementById("buscador");
