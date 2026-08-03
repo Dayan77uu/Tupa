@@ -15,7 +15,11 @@ def create_app():
     db.init_app(app)
 
     from flask_cors import CORS
-    CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}},
+        supports_credentials=True,
+    )
 
     from app.auth.routes import auth_bp
     from app.catalogo.routes import catalogo_bp
