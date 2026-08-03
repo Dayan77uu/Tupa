@@ -115,7 +115,7 @@ Configura en Render las variables indicadas en `backend/.env.example`. Nunca exp
 - Build command: ninguno
 - Build output directory: `frontend`
 
-Antes del despliegue reemplaza el marcador de Render en `frontend/static/js/config.js`. Tras obtener el dominio de Pages, añádelo a `CORS_ORIGINS` en Render.
+La URL pública de Render se centraliza en `frontend/static/js/config.js`. Tras obtener el dominio de Pages, añádelo a `CORS_ORIGINS` en Render.
 
 ## Rollback de aplicación
 
@@ -125,4 +125,3 @@ Render y Cloudflare pueden volver a desplegar un commit anterior de `franshesco`
 
 - SMTP debe configurarse en Render para correo real; sin esas variables las notificaciones quedan en modo simulado.
 - El flujo de derivación incluido contiene datos sintéticos que deben sustituirse por información institucional validada.
-- El frontend conserva un marcador de URL hasta que exista el dominio público de Render.
