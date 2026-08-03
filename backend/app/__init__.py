@@ -1,19 +1,27 @@
 from flask import Flask, jsonify
 from sqlalchemy import text
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import Config
-from app.extensions import db, bcrypt
+from app.extensions import db
+from flask import request
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db.init_app(app)
-    bcrypt.init_app(app)
 
     from flask_cors import CORS
-    CORS(app)
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": "*"}},
+        supports_credentials=False,
+        methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
 
     from app.auth.routes import auth_bp
     from app.catalogo.routes import catalogo_bp
@@ -42,5 +50,19 @@ def create_app():
     @app.errorhandler(413)
     def archivo_demasiado_grande(_error):
         return jsonify({"error": "El archivo supera el tamano maximo permitido"}), 413
+
+    @app.after_request
+    def _force_cors_headers(response):
+        # Añade encabezados CORS por si la configuración automática no los aplica
+        try:
+            origin = request.headers.get("Origin")
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+        except Exception:
+            pass
+        return response
 
     return app

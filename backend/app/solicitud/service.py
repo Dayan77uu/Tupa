@@ -1,10 +1,9 @@
-import os
 from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy import text
 from werkzeug.utils import secure_filename
 
-from app.config import Config
 from app.extensions import db
 from app.models.usuario import Usuario
 from app.models.tramite import CatalogoTramite, RequisitoTramite, UnidadTramite
@@ -13,9 +12,28 @@ from app.models.expediente import Expediente, DocumentoExpediente, ContadorExped
 from app.models.movimiento import MovimientoExpediente
 from app.seguimiento.service import registrar_movimiento
 from app.dias_habiles import sumar_dias_habiles
+from app import storage_service
+from app.storage_service import StorageError
 
 MENSAJE_NO_AUTORIZADO = "No tiene acceso a este expediente"
 MENSAJE_EXPEDIENTE_NO_ENCONTRADO = "Expediente no encontrado"
+
+MIME_POR_EXTENSION = {
+    "pdf": "application/pdf",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+}
+
+
+def _mime_real(data):
+    if data.startswith(b"%PDF-"):
+        return "application/pdf"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    return None
 
 
 def obtener_perfil(cidtusuario: str):
@@ -69,22 +87,21 @@ def _derivar_tipo_expediente(ccodigo: str) -> str:
 
 
 def _generar_numero_expediente(tipo: str) -> str:
-    """Atomico via UPSERT: MySQL serializa INSERT ... ON DUPLICATE KEY UPDATE a nivel
-    de fila, por lo que dos requests concurrentes no pueden obtener el mismo secuencial."""
+    """Genera un correlativo atómico mediante el UPSERT nativo de PostgreSQL."""
     anio = datetime.utcnow().year
 
-    db.session.execute(
+    secuencial = db.session.execute(
         text(
             """
             INSERT INTO contador_expediente (anio, tipo, ultimo_numero)
             VALUES (:anio, :tipo, 1)
-            ON DUPLICATE KEY UPDATE ultimo_numero = ultimo_numero + 1
+            ON CONFLICT (anio, tipo)
+            DO UPDATE SET ultimo_numero = contador_expediente.ultimo_numero + 1
+            RETURNING ultimo_numero
             """
         ),
         {"anio": anio, "tipo": tipo},
-    )
-    contador = db.session.get(ContadorExpediente, (anio, tipo))
-    secuencial = contador.ultimo_numero
+    ).scalar_one()
 
     return f"{anio}-{tipo}-{secuencial:06d}"
 
@@ -192,23 +209,29 @@ def _validar_y_guardar_documento(expediente: Expediente, id_requisito: int, arch
             "error": f"Formato no permitido. Formatos aceptados: {', '.join(formatos_permitidos)}"
         }
 
-    archivo.seek(0, os.SEEK_END)
-    tamano_bytes = archivo.tell()
-    archivo.seek(0)
+    contenido = archivo.read()
+    tamano_bytes = len(contenido)
     limite_bytes = requisito.nmaxtamaniomb * 1024 * 1024
     if tamano_bytes > limite_bytes:
         return 400, {"error": f"El archivo supera el tamano maximo de {requisito.nmaxtamaniomb} MB"}
 
-    carpeta_expediente = os.path.join(Config.UPLOAD_FOLDER, expediente.cnroexpediente)
-    os.makedirs(carpeta_expediente, exist_ok=True)
-    nombre_guardado = f"req{id_requisito}_{nombre_original}"
-    ruta_absoluta = os.path.join(carpeta_expediente, nombre_guardado)
-    archivo.save(ruta_absoluta)
+    mime_esperado = MIME_POR_EXTENSION.get(extension)
+    mime_detectado = _mime_real(contenido)
+    if not mime_esperado or mime_detectado != mime_esperado:
+        return 400, {"error": "El contenido del archivo no coincide con su formato"}
+
+    nombre_guardado = f"req{id_requisito}_{uuid4().hex}.{extension}"
     ruta_relativa = f"{expediente.cnroexpediente}/{nombre_guardado}"
 
     documento_existente = DocumentoExpediente.query.filter_by(
         nidtexpediente=expediente.nidtexpediente, nidtrequisitotramite=id_requisito
     ).first()
+    ruta_anterior = documento_existente.crutaarchivo if documento_existente else None
+    try:
+        storage_service.save(ruta_relativa, contenido, mime_detectado)
+    except StorageError:
+        return 502, {"error": "No se pudo almacenar el documento"}
+
     if documento_existente:
         documento_existente.cnombrearchivooriginal = nombre_original
         documento_existente.crutaarchivo = ruta_relativa
@@ -225,7 +248,20 @@ def _validar_y_guardar_documento(expediente: Expediente, id_requisito: int, arch
                 ntamaniobytes=tamano_bytes,
             )
         )
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        try:
+            storage_service.delete(ruta_relativa)
+        except StorageError:
+            pass
+        raise
+    if ruta_anterior and ruta_anterior != ruta_relativa:
+        try:
+            storage_service.delete(ruta_anterior)
+        except StorageError:
+            pass
     return None
 
 

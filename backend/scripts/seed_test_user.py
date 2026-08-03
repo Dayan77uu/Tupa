@@ -9,6 +9,7 @@ Uso: backend/venv/Scripts/python.exe -m scripts.seed_test_user
 from app import create_app
 from app.extensions import db, bcrypt
 from app.models.usuario import Perfil, Usuario, Login
+from sqlalchemy import text
 
 TEST_CIDTUSUARIO = "99999999"
 TEST_CORREO = "estudiante.prueba@unsaac.edu.pe"
@@ -18,6 +19,21 @@ TEST_PASSWORD = "Prueba123!"
 def run():
     app = create_app()
     with app.app_context():
+        db.session.execute(
+            text(
+                "INSERT INTO tconfiguracion (nidtconfiguracion, cdescripcion) "
+                "VALUES (1, 'TIPO DE USUARIO') ON CONFLICT (nidtconfiguracion) DO NOTHING"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO tdetalleconfiguracion "
+                "(nidtdetalleconfiguracion, nidtconfiguracion, cdescripciondetalleconfiguracion) "
+                "VALUES (1, 1, 'ESTUDIANTE') "
+                "ON CONFLICT (nidtdetalleconfiguracion) DO NOTHING"
+            )
+        )
+
         perfil = Perfil.query.filter_by(cdescripcionperfil="ESTUDIANTE").first()
         if perfil is None:
             perfil = Perfil(cdescripcionperfil="ESTUDIANTE")

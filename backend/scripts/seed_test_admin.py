@@ -13,6 +13,7 @@ Uso: backend/venv/Scripts/python.exe -m scripts.seed_test_admin
 from app import create_app
 from app.extensions import db, bcrypt
 from app.models.usuario import Perfil, Usuario, Login
+from sqlalchemy import text
 
 TEST_CIDTUSUARIO = "88888888"
 TEST_CORREO = "administrativo.prueba@unsaac.edu.pe"
@@ -23,6 +24,21 @@ TEST_OFICINA = 1  # SEDE CENTRAL CUSCO
 def run():
     app = create_app()
     with app.app_context():
+        db.session.execute(
+            text(
+                "INSERT INTO tconfiguracion (nidtconfiguracion, cdescripcion) "
+                "VALUES (1, 'TIPO DE USUARIO') ON CONFLICT (nidtconfiguracion) DO NOTHING"
+            )
+        )
+        db.session.execute(
+            text(
+                "INSERT INTO tdetalleconfiguracion "
+                "(nidtdetalleconfiguracion, nidtconfiguracion, cdescripciondetalleconfiguracion) "
+                "VALUES (3, 1, 'ADMINISTRATIVO') "
+                "ON CONFLICT (nidtdetalleconfiguracion) DO NOTHING"
+            )
+        )
+
         perfil = Perfil.query.filter_by(cdescripcionperfil="OPERADOR DE OTI").first()
         if perfil is None:
             print("ERROR: no existe el perfil 'OPERADOR DE OTI' en tperfil.")
