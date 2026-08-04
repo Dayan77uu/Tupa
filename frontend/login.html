@@ -65,14 +65,10 @@
         </p>
 
         <div class="alert d-flex align-items-start gap-2 mb-4" id="error-login" hidden></div>
-        <div class="alert alert-info d-flex align-items-start gap-2 mb-4" id="aviso-activacion" hidden>
-          <i class="bi bi-info-circle mt-1"></i>
-          <span>Esta cuenta aún no ha sido activada. <a href="activar-cuenta.html" class="alert-link">Actívala aquí</a></span>
-        </div>
 
         <form id="form-login" novalidate>
           <div class="mb-3">
-            <label for="correo" class="form-label">Correo institucional</label>
+            <label for="correo" class="form-label">Correo institucional (opcional para registro)</label>
             <div class="input-con-icono">
               <i class="bi bi-envelope"></i>
               <input
@@ -82,10 +78,40 @@
                 name="correo"
                 placeholder="usuario@unsaac.edu.pe"
                 autocomplete="username"
-                required
               />
             </div>
             <div class="mensaje-error-campo mt-1" id="error-correo" hidden></div>
+          </div>
+
+          <div class="mb-3">
+            <label for="codigoalumno" class="form-label">Código de alumno (solo para registro)</label>
+            <div class="input-con-icono">
+              <i class="bi bi-person-badge"></i>
+              <input
+                type="text"
+                class="form-control"
+                id="codigoalumno"
+                name="codigoalumno"
+                placeholder="Ej. 215326"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="dni" class="form-label">DNI (solo para registro)</label>
+            <div class="input-con-icono">
+              <i class="bi bi-card-text"></i>
+              <input
+                type="text"
+                class="form-control"
+                id="dni"
+                name="dni"
+                placeholder="8 dígitos"
+                maxlength="8"
+                autocomplete="off"
+              />
+            </div>
           </div>
 
           <div class="mb-2">
@@ -115,6 +141,9 @@
 
           <div class="text-center mb-3">
             <a href="catalogo.html" class="small text-decoration-none">Consultar el catálogo TUPA sin iniciar sesión</a>
+          </div>
+          <div class="text-center">
+            <small class="text-muted">Si no tienes cuenta, deja el correo en blanco, ingresa tu código de alumno y DNI, y se generará tu correo institucional automáticamente.</small>
           </div>
         </form>
 

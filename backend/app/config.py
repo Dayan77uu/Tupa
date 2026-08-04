@@ -44,6 +44,12 @@ class Config:
         if origin.strip()
     ]
 
+    BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:5000")
+    FRONTEND_URL = os.environ.get(
+        "FRONTEND_URL",
+        CORS_ORIGINS[0] if CORS_ORIGINS else "http://localhost:8000",
+    )
+
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     FORMATOS_PERMITIDOS_DEFAULT = {"pdf", "jpg", "jpeg", "png"}

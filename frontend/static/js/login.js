@@ -8,7 +8,6 @@ const campoCorreo = document.getElementById("correo");
 const campoContrasena = document.getElementById("contrasena");
 const errorCorreo = document.getElementById("error-correo");
 const errorLogin = document.getElementById("error-login");
-const avisoActivacion = document.getElementById("aviso-activacion");
 const btnLogin = document.getElementById("btn-login");
 const contadorIntentos = document.getElementById("contador-intentos");
 const btnVerContrasena = document.getElementById("btn-ver-contrasena");
@@ -54,11 +53,26 @@ function mostrarBanner(tipo, mensaje) {
     error: "alert-danger",
     bloqueo: "alert-warning",
     conexion: "alert-secondary",
+    success: "alert-success",
   };
   errorLogin.classList.add(estilos[tipo] || "alert-danger");
-  errorLogin.innerHTML = `<i class="bi bi-exclamation-circle mt-1"></i><span>${mensaje}</span>`;
+  errorLogin.innerHTML = `<i class="bi bi-${tipo === "success" ? "check-circle" : "exclamation-circle"} mt-1"></i><span>${mensaje}</span>`;
   errorLogin.hidden = false;
 }
+
+function leerQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("verified") === "1") {
+    mostrarBanner("success", "Tu correo fue verificado. Ahora puedes iniciar sesión.");
+    return;
+  }
+  if (params.get("verified") === "0") {
+    mostrarBanner("error", params.get("message") || "La verificación falló. Intenta de nuevo.");
+    return;
+  }
+}
+
+leerQueryParams();
 
 function redirigirSegunRol(rol) {
   if (rol === "ESTUDIANTE") {
@@ -73,13 +87,22 @@ function redirigirSegunRol(rol) {
 form.addEventListener("submit", async (evento) => {
   evento.preventDefault();
   errorLogin.hidden = true;
-  avisoActivacion.hidden = true;
 
   const correo = campoCorreo.value.trim();
+  const codigoalumno = document.getElementById("codigoalumno").value.trim();
+  const dni = document.getElementById("dni").value.trim();
   const contrasena = campoContrasena.value;
 
-  if (!correoTieneDominioValido(correo)) {
+  if (correo && !correoTieneDominioValido(correo)) {
     actualizarEstiloCorreo();
+    return;
+  }
+
+  if (!correo && (!codigoalumno || !dni)) {
+    mostrarBanner(
+      "error",
+      "Ingresa tu correo para iniciar sesión o, si aún no tienes cuenta, proporciona código de alumno y DNI para registrarte."
+    );
     return;
   }
 
@@ -90,17 +113,17 @@ form.addEventListener("submit", async (evento) => {
     const respuesta = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ correo, contrasena }),
+      body: JSON.stringify({ correo, contrasena, codigoalumno, dni }),
     });
 
     const datos = await respuesta.json();
 
-    if (!respuesta.ok) {
-      if (datos.cuenta_pendiente_activacion) {
-        avisoActivacion.hidden = false;
-        return;
-      }
+    if (respuesta.status === 202) {
+      mostrarBanner("success", datos.mensaje || "Revisa tu correo para verificar tu cuenta.");
+      return;
+    }
 
+    if (!respuesta.ok) {
       const bloqueado = (datos.error || "").toLowerCase().includes("bloqueada");
       mostrarBanner(bloqueado ? "bloqueo" : "error", datos.error || "No se pudo iniciar sesión.");
 
