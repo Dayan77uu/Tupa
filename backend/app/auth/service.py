@@ -81,11 +81,15 @@ def _enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> bool:
     email["To"] = destinatario
     email.set_content(cuerpo)
 
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as servidor:
-        servidor.starttls()
-        servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
-        servidor.send_message(email)
-    return True
+    try:
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as servidor:
+            servidor.starttls()
+            servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+            servidor.send_message(email)
+        return True
+    except Exception as e:
+        print(f"[ERROR SMTP] No se pudo enviar correo a {destinatario}: {e}")
+        return False
 
 
 def iniciar_sesion(identificador: str, contrasena: str, ip: str):
@@ -235,16 +239,21 @@ def registrar_alumno(codigo_alumno: str, dni: str, password: str, password_confi
             activada=False,
         )
         db.session.add(login)
-        db.session.commit()
+        db.session.flush()
 
-        _enviar_correo_verificacion(correo_generado, codigo_alumno, dni)
+        if not _enviar_correo_verificacion(correo_generado, codigo_alumno, dni):
+            db.session.rollback()
+            _registrar_auditoria(correo_generado, ip, "ERROR_ENVIO_VERIFICACION")
+            return 500, {"error": "No se pudo enviar el correo de verificación. Contacta con soporte."}
+
+        db.session.commit()
         _registrar_auditoria(correo_generado, ip, "REGISTRO_EXITOSO")
 
         return 201, {
             "mensaje": "Cuenta creada correctamente.",
             "correo": correo_generado
         }
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         _registrar_auditoria(correo_generado, ip, "ERROR_REGISTRO")
         return 500, {"error": MENSAJE_ERROR_SISTEMA}
@@ -262,7 +271,7 @@ def _enviar_correo_verificacion(correo: str, codigoalumno: str, dni: str):
         f"Este enlace expirará en {MINUTOS_EXPIRACION_VERIFICACION} minutos.\n"
         f"Si no solicitaste este registro, ignora este correo.\n"
     )
-    _enviar_correo(correo, asunto, cuerpo)
+    return _enviar_correo(correo, asunto, cuerpo)
 
 
 def reenviar_verificacion(codigo_alumno: str, ip: str):
