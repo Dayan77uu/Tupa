@@ -89,8 +89,6 @@ form.addEventListener("submit", async (evento) => {
   errorLogin.hidden = true;
 
   const correo = campoCorreo.value.trim();
-  const codigoalumno = document.getElementById("codigoalumno").value.trim();
-  const dni = document.getElementById("dni").value.trim();
   const contrasena = campoContrasena.value;
 
   if (correo && !correoTieneDominioValido(correo)) {
@@ -98,10 +96,10 @@ form.addEventListener("submit", async (evento) => {
     return;
   }
 
-  if (!correo && (!codigoalumno || !dni)) {
+  if (!correo) {
     mostrarBanner(
       "error",
-      "Ingresa tu correo para iniciar sesión o, si aún no tienes cuenta, proporciona código de alumno y DNI para registrarte."
+      "Ingresa tu correo para iniciar sesión."
     );
     return;
   }
@@ -113,7 +111,7 @@ form.addEventListener("submit", async (evento) => {
     const respuesta = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ correo, contrasena, codigoalumno, dni }),
+      body: JSON.stringify({ correo, contrasena }),
     });
 
     const datos = await respuesta.json();
@@ -125,6 +123,12 @@ form.addEventListener("submit", async (evento) => {
 
     if (!respuesta.ok) {
       const bloqueado = (datos.error || "").toLowerCase().includes("bloqueada");
+      
+      if (respuesta.status === 403 && datos.cuenta_pendiente_activacion) {
+        mostrarBanner("error", `${datos.error} <a href="activar-cuenta.html" class="alert-link">Activar cuenta aquí</a>`);
+        return;
+      }
+      
       mostrarBanner(bloqueado ? "bloqueo" : "error", datos.error || "No se pudo iniciar sesión.");
 
       if (bloqueado) {

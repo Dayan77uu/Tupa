@@ -29,4 +29,15 @@ def verificar_email():
         redirect_url = f"{service.Config.FRONTEND_URL}/login.html?verified=0&message={mensaje}"
     return redirect(redirect_url)
 
+@auth_bp.post("/activar-cuenta")
+def activar_cuenta():
+    data = request.get_json(silent=True) or {}
+    codigoalumno = data.get("codigoalumno", "")
+    dni = data.get("dni", "")
+    nueva_contrasena = data.get("nueva_contrasena", "")
+    ip = request.remote_addr or "desconocida"
+
+    status_code, body = service.activar_cuenta(codigoalumno, dni, nueva_contrasena, ip)
+    return jsonify(body), status_code
+
 

@@ -287,4 +287,41 @@ def verificar_email(token: str):
 
     return 200, {"mensaje": "Cuenta verificada correctamente. Ya puedes iniciar sesión."}
 
+def activar_cuenta(codigoalumno: str, dni: str, nueva_contrasena: str, ip: str):
+    if not codigoalumno or not dni or not nueva_contrasena:
+        return 400, {"error": "Faltan datos requeridos."}
+
+    if not contrasena_valida(nueva_contrasena):
+        return 400, {"error": "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número."}
+
+    alumno = Alumno.query.filter_by(codigoalumno=codigoalumno.strip(), dni=dni.strip()).first()
+    if not alumno:
+        return 404, {"error": "No se encontró un alumno con ese código y DNI."}
+        
+    usuario = db.session.get(Usuario, dni.strip())
+    if not usuario:
+        # Create it if it doesn't exist (e.g. if they didn't run the pre-create script)
+        login, correo_generado = _crear_cuenta_alumno(codigoalumno, nueva_contrasena, dni)
+        if not login:
+            return 500, {"error": "Error al crear la cuenta."}
+        login.activada = True
+        db.session.commit()
+        _registrar_auditoria(correo_generado, ip, "ACTIVACION_CUENTA_Y_CREACION")
+        return 200, {"mensaje": "Cuenta creada y activada correctamente"}
+
+    login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
+    if not login:
+        return 404, {"error": "El usuario no tiene credenciales de acceso."}
+        
+    if login.activada:
+        return 400, {"error": "Esta cuenta ya fue activada anteriormente."}
+        
+    login.ccontrasenia = bcrypt.generate_password_hash(nueva_contrasena, rounds=12).decode("utf-8")
+    login.activada = True
+    login.intentos_fallidos = 0
+    login.fecha_bloqueo = None
+    db.session.commit()
+    
+    _registrar_auditoria(usuario.ccorreo, ip, "ACTIVACION_CUENTA")
+    return 200, {"mensaje": "Tu cuenta ha sido activada correctamente"}
 
