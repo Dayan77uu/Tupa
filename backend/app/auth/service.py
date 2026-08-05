@@ -10,24 +10,24 @@ from sqlalchemy import func
 from app.extensions import db, bcrypt
 from app.config import Config
 from app.models.usuario import Usuario, Login, RegistroAuditoria, Perfil
-from app.models.perfil_academico import Alumno
 
 DOMINIO_INSTITUCIONAL = "@unsaac.edu.pe"
 MAX_INTENTOS_FALLIDOS = 5
 MINUTOS_BLOQUEO = 15
 MINUTOS_EXPIRACION_TOKEN = 30
 MINUTOS_EXPIRACION_VERIFICACION = 60
-MENSAJE_CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos"
+MINUTOS_ESPERA_REENVIO = 2
+
+MENSAJE_CREDENCIALES_INVALIDAS = "Código de alumno o contraseña incorrectos."
+MENSAJE_CREDENCIALES_INVALIDAS_CORREO = "Correo o contraseña incorrectos."
 MENSAJE_ERROR_SISTEMA = "Error de conexión. Intente nuevamente."
-MENSAJE_CUENTA_NO_ACTIVADA = "Esta cuenta aún no ha sido verificada. Revisa tu correo de verificación."
+MENSAJE_CUENTA_NO_ACTIVADA = "Debes verificar tu correo institucional antes de iniciar sesión."
+MENSAJE_CUENTA_YA_ACTIVADA = "La cuenta ya fue verificada. Inicia sesión."
 MENSAJE_DATOS_NO_COINCIDEN = "El DNI o código de alumno no son válidos."
-MENSAJE_CUENTA_YA_ACTIVADA = "La cuenta ya fue verificada. Usa \"Olvidé mi contraseña\"."
-MENSAJE_REGISTRO_REQUERIDO = (
-    "Si aún no tienes cuenta, proporciona codigoalumno, dni y una contraseña segura "
-    "para registrarte." 
-)
 
 REGEX_CONTRASENA_VALIDA = re.compile(r"^(?=.*[A-Z])(?=.*\d).{8,}$")
+REGEX_CODIGO_ALUMNO = re.compile(r"^\d+$")
+REGEX_DNI = re.compile(r"^\d{8}$")
 
 
 def dominio_valido(correo: str) -> bool:
@@ -38,9 +38,9 @@ def contrasena_valida(contrasena: str) -> bool:
     return bool(contrasena) and bool(REGEX_CONTRASENA_VALIDA.match(contrasena))
 
 
-def _registrar_auditoria(correo: str, ip: str, resultado: str) -> None:
+def _registrar_auditoria(identificador: str, ip: str, resultado: str) -> None:
     db.session.add(
-        RegistroAuditoria(correo_ingresado=correo, direccion_ip=ip, resultado=resultado)
+        RegistroAuditoria(correo_ingresado=identificador, direccion_ip=ip, resultado=resultado)
     )
     db.session.commit()
 
@@ -55,7 +55,7 @@ def _generar_token(id_usuario: str, rol: str) -> str:
 
 
 def _armar_correo(codigoalumno: str) -> str:
-    return f"{codigoalumno.strip().lower()}@unsaac.edu.pe"
+    return f"{codigoalumno.strip().lower()}{DOMINIO_INSTITUCIONAL}"
 
 
 def _generar_token_verificacion(correo: str, codigoalumno: str, dni: str) -> str:
@@ -64,6 +64,7 @@ def _generar_token_verificacion(correo: str, codigoalumno: str, dni: str) -> str
         "correo": correo.strip().lower(),
         "codigoalumno": codigoalumno.strip(),
         "dni": dni.strip(),
+        "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(minutes=MINUTOS_EXPIRACION_VERIFICACION),
     }
     return jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
@@ -87,160 +88,222 @@ def _enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> bool:
     return True
 
 
-def _crear_cuenta_alumno(codigoalumno: str, contrasena: str, dni: str):
-    perfil_estudiante = Perfil.query.filter_by(cdescripcionperfil="ESTUDIANTE").first()
-    if perfil_estudiante is None:
-        return None, "No existe el perfil ESTUDIANTE en la base de datos."
+def iniciar_sesion(identificador: str, contrasena: str, ip: str):
+    """
+    Inicia sesión para estudiantes (código) o administrativos (correo).
+    Devuelve (status_code, body_dict).
+    """
+    if not identificador or not contrasena:
+        return 400, {"error": "Faltan credenciales."}
 
-    correo_generado = _armar_correo(codigoalumno)
+    identificador = identificador.strip().lower()
+    es_correo = "@" in identificador
+    usuario = None
 
-    # Eliminamos la validación estricta contra talumno a petición del usuario.
-    # Cualquier código y DNI será aceptado, confiando en la verificación por correo.
-    if Usuario.query.filter_by(cdni=dni.strip()).first() is not None:
-        return None, "Ya existe una cuenta registrada con este DNI."
-        
-    if Usuario.query.filter_by(ccorreo=correo_generado).first() is not None:
-        return None, f"Ya existe una cuenta registrada con el correo {correo_generado}."
+    if es_correo:
+        if not dominio_valido(identificador):
+            return 400, {"error": "Solo se aceptan correos institucionales UNSAAC."}
+        usuario = Usuario.query.filter(func.lower(Usuario.ccorreo) == identificador).first()
+        mensaje_invalido = MENSAJE_CREDENCIALES_INVALIDAS_CORREO
+    else:
+        # Se asume código de alumno (cidtusuario)
+        usuario = db.session.get(Usuario, identificador)
+        if not usuario:
+            # Buscar por si está usando DNI como identificador o el cidtusuario es distinto
+            usuario = Usuario.query.filter(
+                (func.lower(Usuario.ccodigo) == identificador) | 
+                (func.lower(Usuario.cidtusuario) == identificador)
+            ).first()
+        mensaje_invalido = MENSAJE_CREDENCIALES_INVALIDAS
 
-    usuario = Usuario(
-        cidtusuario=dni.strip(),
-        nidttipousuario=1,
-        cdni=dni.strip(),
-        ccodigo=codigoalumno.strip(),
-        cnombres="Estudiante",
-        cpaterno="UNSAAC",
-        cmaterno="",
-        ccorreo=correo_generado,
-    )
-    db.session.add(usuario)
+    if usuario is None:
+        _registrar_auditoria(identificador, ip, "FALLIDO")
+        return 401, {"error": mensaje_invalido}
 
-    login = Login(
-        clogin=dni.strip(),
-        cidtusuario=dni.strip(),
-        nidtperfil=perfil_estudiante.nidtperfil,
-        ccontrasenia=bcrypt.generate_password_hash(contrasena, rounds=12).decode("utf-8"),
-        intentos_fallidos=0,
-        activada=False,
-    )
-    db.session.add(login)
-    db.session.commit()
+    login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
 
-    return login, correo_generado
+    if login is None:
+        _registrar_auditoria(identificador, ip, "FALLIDO")
+        return 401, {"error": mensaje_invalido}
 
-
-def autenticar(correo: str, contrasena: str, ip: str, codigoalumno: str = "", dni: str = ""):
-    """Devuelve (status_code, body_dict)."""
-
-    correo_input = correo.strip().lower() if correo else ""
-    correo_generado = _armar_correo(codigoalumno) if codigoalumno else ""
-    correo_normalizado = correo_input or correo_generado
-
-    if correo_input and not dominio_valido(correo_input):
-        return 400, {"error": "Solo se aceptan correos institucionales UNSAAC"}
-
-    if codigoalumno and correo_input and correo_input != correo_generado:
-        return 400, {
-            "error": (
-                f"El correo debe ser el institucional generado por el código de alumno: {correo_generado}"
-            )
+    if not login.activada:
+        _registrar_auditoria(identificador, ip, "FALLIDO_NO_VERIFICADO")
+        return 403, {
+            "error": MENSAJE_CUENTA_NO_ACTIVADA, 
+            "cuenta_pendiente_activacion": True,
+            "codigo_alumno": usuario.ccodigo or usuario.cidtusuario
         }
 
-    try:
-        usuario = None
-        if correo_normalizado:
-            usuario = Usuario.query.filter(func.lower(Usuario.ccorreo) == correo_normalizado).first()
+    ahora = datetime.utcnow()
+    if login.fecha_bloqueo and login.fecha_bloqueo > ahora:
+        minutos_restantes = max(1, int((login.fecha_bloqueo - ahora).total_seconds() // 60) + 1)
+        _registrar_auditoria(identificador, ip, "FALLIDO_BLOQUEADO")
+        return 403, {
+            "error": f"Cuenta bloqueada temporalmente. Intente en {minutos_restantes} minutos."
+        }
 
-        if usuario is None:
-            if not codigoalumno or not dni or not contrasena:
-                return 400, {"error": MENSAJE_REGISTRO_REQUERIDO}
+    contrasena_correcta = login.ccontrasenia and bcrypt.check_password_hash(
+        login.ccontrasenia, contrasena
+    )
 
-            if not contrasena_valida(contrasena):
-                return 400, {
-                    "error": "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número"
-                }
+    if not contrasena_correcta:
+        login.intentos_fallidos = (login.intentos_fallidos or 0) + 1
 
-            login, correo_generado = _crear_cuenta_alumno(codigoalumno, contrasena, dni)
-            if isinstance(correo_generado, str) and not login:
-                _registrar_auditoria(correo_normalizado, ip, "FALLIDO")
-                return 401, {"error": correo_generado}
-            if login is None:
-                _registrar_auditoria(correo_normalizado, ip, "FALLIDO")
-                return 401, {"error": "No se pudo crear la cuenta. Verifica los datos."}
-
-            token_verificacion = _generar_token_verificacion(correo_generado, codigoalumno, dni)
-            link = (
-                f"{Config.BACKEND_URL}/api/auth/verificar-email?token={quote_plus(token_verificacion)}"
-            )
-            asunto = "Verifica tu cuenta TUPA UNSAAC"
-            cuerpo = (
-                f"Hola,\n\n"
-                f"Se ha solicitado el registro de una nueva cuenta para el sistema TUPA.\n"
-                f"Tu correo institucional generado es: {correo_generado}\n\n"
-                f"Haz clic en el siguiente enlace para verificar tu correo y poder iniciar sesión:\n\n"
-                f"{link}\n\n"
-                f"Si no solicitaste este registro, ignora este correo.\n"
-            )
-            _enviar_correo(correo_generado, asunto, cuerpo)
-            _registrar_auditoria(correo_normalizado, ip, "EXITOSO")
-            return 202, {
-                "mensaje": "Se te envio un correo de verificacion a tu bandeja de mensajes"
-            }
-
-        login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
-
-        if login is None:
-            _registrar_auditoria(correo, ip, "FALLIDO")
-            return 401, {"error": MENSAJE_CREDENCIALES_INVALIDAS}
-
-        if not login.activada:
-            _registrar_auditoria(correo, ip, "FALLIDO")
-            return 403, {"error": MENSAJE_CUENTA_NO_ACTIVADA, "cuenta_pendiente_activacion": True}
-
-        ahora = datetime.utcnow()
-
-        if login.fecha_bloqueo and login.fecha_bloqueo > ahora:
-            minutos_restantes = max(1, int((login.fecha_bloqueo - ahora).total_seconds() // 60) + 1)
-            _registrar_auditoria(correo, ip, "FALLIDO")
-            return 403, {
-                "error": f"Cuenta bloqueada temporalmente. Intente en {minutos_restantes} minutos."
-            }
-
-        contrasena_correcta = login.ccontrasenia and bcrypt.check_password_hash(
-            login.ccontrasenia, contrasena
-        )
-
-        if not contrasena_correcta:
-            login.intentos_fallidos = (login.intentos_fallidos or 0) + 1
-
-            if login.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
-                login.fecha_bloqueo = ahora + timedelta(minutes=MINUTOS_BLOQUEO)
-                db.session.commit()
-                _registrar_auditoria(correo, ip, "FALLIDO")
-                return 403, {
-                    "error": f"Cuenta bloqueada temporalmente. Intente en {MINUTOS_BLOQUEO} minutos."
-                }
-
+        if login.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
+            login.fecha_bloqueo = ahora + timedelta(minutes=MINUTOS_BLOQUEO)
             db.session.commit()
-            _registrar_auditoria(correo, ip, "FALLIDO")
-            return 401, {"error": MENSAJE_CREDENCIALES_INVALIDAS}
+            _registrar_auditoria(identificador, ip, "BLOQUEO_ALCANZADO")
+            return 403, {
+                "error": f"Cuenta bloqueada temporalmente. Intente en {MINUTOS_BLOQUEO} minutos."
+            }
 
-        login.intentos_fallidos = 0
-        login.fecha_bloqueo = None
+        db.session.commit()
+        _registrar_auditoria(identificador, ip, "FALLIDO_CLAVE_ERRONEA")
+        return 401, {"error": mensaje_invalido}
+
+    login.intentos_fallidos = 0
+    login.fecha_bloqueo = None
+    db.session.commit()
+
+    rol = login.perfil.cdescripcionperfil if login.perfil else None
+    token = _generar_token(usuario.cidtusuario, rol)
+
+    _registrar_auditoria(identificador, ip, "EXITOSO")
+    return 200, {"token": token, "rol": rol}
+
+
+def registrar_alumno(codigo_alumno: str, dni: str, password: str, password_confirmation: str, ip: str):
+    """
+    Registra un nuevo estudiante sin buscar en talumno.
+    Devuelve (status_code, body_dict).
+    """
+    codigo_alumno = codigo_alumno.strip()
+    dni = dni.strip()
+
+    if not codigo_alumno or not dni or not password or not password_confirmation:
+        return 400, {"error": "Todos los campos son obligatorios."}
+
+    if not REGEX_CODIGO_ALUMNO.match(codigo_alumno):
+        return 400, {"error": "El código de alumno debe contener solamente números."}
+
+    if not REGEX_DNI.match(dni):
+        return 400, {"error": "El DNI debe contener exactamente 8 dígitos."}
+
+    if password != password_confirmation:
+        return 400, {"error": "Las contraseñas no coinciden."}
+
+    if not contrasena_valida(password):
+        return 400, {"error": "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número."}
+
+    correo_generado = _armar_correo(codigo_alumno)
+
+    if Usuario.query.filter(
+        (Usuario.cidtusuario == codigo_alumno) | 
+        (Usuario.ccodigo == codigo_alumno)
+    ).first() is not None:
+        return 400, {"error": "El código de alumno ya tiene una cuenta registrada."}
+
+    if Usuario.query.filter_by(cdni=dni).first() is not None:
+        return 400, {"error": "El DNI ya está asociado a otra cuenta."}
+
+    if Usuario.query.filter_by(ccorreo=correo_generado).first() is not None:
+        return 400, {"error": "Ya existe una cuenta registrada con este correo institucional."}
+
+    perfil_estudiante = Perfil.query.filter_by(cdescripcionperfil="ESTUDIANTE").first()
+    if perfil_estudiante is None:
+        return 500, {"error": "Error interno: No existe el perfil ESTUDIANTE en la base de datos."}
+
+    try:
+        usuario = Usuario(
+            cidtusuario=codigo_alumno,
+            nidttipousuario=1,
+            cdni=dni,
+            ccodigo=codigo_alumno,
+            cnombres="Estudiante",
+            cpaterno="UNSAAC",
+            cmaterno="",
+            ccorreo=correo_generado,
+        )
+        db.session.add(usuario)
+
+        login = Login(
+            clogin=codigo_alumno,
+            cidtusuario=codigo_alumno,
+            nidtperfil=perfil_estudiante.nidtperfil,
+            ccontrasenia=bcrypt.generate_password_hash(password, rounds=12).decode("utf-8"),
+            intentos_fallidos=0,
+            activada=False,
+        )
+        db.session.add(login)
         db.session.commit()
 
-        rol = login.perfil.cdescripcionperfil if login.perfil else None
-        token = _generar_token(usuario.cidtusuario, rol)
+        _enviar_correo_verificacion(correo_generado, codigo_alumno, dni)
+        _registrar_auditoria(correo_generado, ip, "REGISTRO_EXITOSO")
 
-        _registrar_auditoria(correo, ip, "EXITOSO")
-        return 200, {"token": token, "rol": rol}
-
-    except Exception:
+        return 201, {
+            "mensaje": "Cuenta creada correctamente.",
+            "correo": correo_generado
+        }
+    except Exception as e:
         db.session.rollback()
-        try:
-            _registrar_auditoria(correo, ip, "ERROR_SISTEMA")
-        except Exception:
-            db.session.rollback()
+        _registrar_auditoria(correo_generado, ip, "ERROR_REGISTRO")
         return 500, {"error": MENSAJE_ERROR_SISTEMA}
+
+
+def _enviar_correo_verificacion(correo: str, codigoalumno: str, dni: str):
+    token_verificacion = _generar_token_verificacion(correo, codigoalumno, dni)
+    link = f"{Config.BACKEND_URL}/api/auth/verificar-email?token={quote_plus(token_verificacion)}"
+    asunto = "Verifica tu cuenta TUPA UNSAAC"
+    cuerpo = (
+        f"Hola,\n\n"
+        f"Se ha creado tu cuenta para el sistema TUPA UNSAAC.\n"
+        f"Haz clic en el siguiente enlace para verificar tu correo y poder iniciar sesión:\n\n"
+        f"{link}\n\n"
+        f"Este enlace expirará en {MINUTOS_EXPIRACION_VERIFICACION} minutos.\n"
+        f"Si no solicitaste este registro, ignora este correo.\n"
+    )
+    _enviar_correo(correo, asunto, cuerpo)
+
+
+def reenviar_verificacion(codigo_alumno: str, ip: str):
+    codigo_alumno = codigo_alumno.strip()
+    if not codigo_alumno:
+        return 400, {"error": "El código de alumno es requerido."}
+
+    usuario = Usuario.query.filter(
+        (Usuario.cidtusuario == codigo_alumno) | 
+        (Usuario.ccodigo == codigo_alumno)
+    ).first()
+
+    if not usuario:
+        return 404, {"error": "No se encontró ninguna cuenta asociada a este código de alumno."}
+
+    login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
+    if not login:
+        return 404, {"error": "La cuenta existe pero no tiene credenciales válidas."}
+
+    if login.activada:
+        return 400, {"error": MENSAJE_CUENTA_YA_ACTIVADA}
+
+    # Anti-spam: Verificar el último reenvío en auditoría
+    ultima_auditoria = RegistroAuditoria.query.filter_by(
+        correo_ingresado=usuario.ccorreo,
+        resultado="REENVIO_VERIFICACION"
+    ).order_by(RegistroAuditoria.fecha.desc()).first()
+
+    ahora = datetime.utcnow()
+    if ultima_auditoria:
+        minutos_transcurridos = (ahora - ultima_auditoria.fecha).total_seconds() / 60.0
+        if minutos_transcurridos < MINUTOS_ESPERA_REENVIO:
+            espera = int(MINUTOS_ESPERA_REENVIO - minutos_transcurridos)
+            return 429, {"error": f"Por favor espera {espera} minuto(s) antes de solicitar otro correo."}
+
+    try:
+        _enviar_correo_verificacion(usuario.ccorreo, usuario.ccodigo or codigo_alumno, usuario.cdni)
+        _registrar_auditoria(usuario.ccorreo, ip, "REENVIO_VERIFICACION")
+        return 200, {"mensaje": f"Se ha reenviado un mensaje de verificación a {usuario.ccorreo}"}
+    except Exception:
+        return 500, {"error": "No se pudo enviar el correo de verificación."}
 
 
 def verificar_email(token: str):
@@ -260,23 +323,20 @@ def verificar_email(token: str):
     correo = payload.get("correo")
     codigoalumno = payload.get("codigoalumno")
     dni = payload.get("dni")
+    
     if not correo or not codigoalumno or not dni:
         return 400, {"error": "Datos de verificación incompletos."}
 
-    alumno = Alumno.query.filter_by(codigoalumno=codigoalumno, dni=dni).first()
-    if alumno is None:
-        return 400, {"error": MENSAJE_DATOS_NO_COINCIDEN}
-
     usuario = Usuario.query.filter(func.lower(Usuario.ccorreo) == correo.lower()).first()
-    if usuario is None or usuario.cidtusuario != dni:
+    if usuario is None or usuario.cdni != dni:
         return 400, {"error": "La cuenta de usuario no coincide con los datos verificados."}
 
-    login = Login.query.filter_by(cidtusuario=dni).first()
+    login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
     if login is None:
         return 400, {"error": "Cuenta de login no encontrada."}
 
     if login.activada:
-        return 200, {"mensaje": "La cuenta ya estaba verificada. Inicia sesión."}
+        return 200, {"mensaje": MENSAJE_CUENTA_YA_ACTIVADA}
 
     login.activada = True
     login.intentos_fallidos = 0
@@ -284,42 +344,3 @@ def verificar_email(token: str):
     db.session.commit()
 
     return 200, {"mensaje": "Cuenta verificada correctamente. Ya puedes iniciar sesión."}
-
-def activar_cuenta(codigoalumno: str, dni: str, nueva_contrasena: str, ip: str):
-    if not codigoalumno or not dni or not nueva_contrasena:
-        return 400, {"error": "Faltan datos requeridos."}
-
-    if not contrasena_valida(nueva_contrasena):
-        return 400, {"error": "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número."}
-
-    alumno = Alumno.query.filter_by(codigoalumno=codigoalumno.strip(), dni=dni.strip()).first()
-    if not alumno:
-        return 404, {"error": "No se encontró un alumno con ese código y DNI."}
-        
-    usuario = db.session.get(Usuario, dni.strip())
-    if not usuario:
-        # Create it if it doesn't exist (e.g. if they didn't run the pre-create script)
-        login, correo_generado = _crear_cuenta_alumno(codigoalumno, nueva_contrasena, dni)
-        if not login:
-            return 500, {"error": "Error al crear la cuenta."}
-        login.activada = True
-        db.session.commit()
-        _registrar_auditoria(correo_generado, ip, "ACTIVACION_CUENTA_Y_CREACION")
-        return 200, {"mensaje": "Cuenta creada y activada correctamente"}
-
-    login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()
-    if not login:
-        return 404, {"error": "El usuario no tiene credenciales de acceso."}
-        
-    if login.activada:
-        return 400, {"error": "Esta cuenta ya fue activada anteriormente."}
-        
-    login.ccontrasenia = bcrypt.generate_password_hash(nueva_contrasena, rounds=12).decode("utf-8")
-    login.activada = True
-    login.intentos_fallidos = 0
-    login.fecha_bloqueo = None
-    db.session.commit()
-    
-    _registrar_auditoria(usuario.ccorreo, ip, "ACTIVACION_CUENTA")
-    return 200, {"mensaje": "Tu cuenta ha sido activada correctamente"}
-

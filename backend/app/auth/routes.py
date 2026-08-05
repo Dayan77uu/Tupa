@@ -9,13 +9,34 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.post("/login")
 def login():
     data = request.get_json(silent=True) or {}
-    correo = data.get("correo", "")
-    contrasena = data.get("contrasena", "")
-    codigoalumno = data.get("codigoalumno", "")
-    dni = data.get("dni", "")
+    identificador = data.get("codigo_alumno") or data.get("correo") or data.get("identificador") or ""
+    contrasena = data.get("password") or data.get("contrasena") or ""
     ip = request.remote_addr or "desconocida"
 
-    status_code, body = service.autenticar(correo, contrasena, ip, codigoalumno, dni)
+    status_code, body = service.iniciar_sesion(identificador, contrasena, ip)
+    return jsonify(body), status_code
+
+
+@auth_bp.post("/register")
+def register():
+    data = request.get_json(silent=True) or {}
+    codigo_alumno = data.get("codigo_alumno", "")
+    dni = data.get("dni", "")
+    password = data.get("password", "")
+    password_confirmation = data.get("password_confirmation", "")
+    ip = request.remote_addr or "desconocida"
+
+    status_code, body = service.registrar_alumno(codigo_alumno, dni, password, password_confirmation, ip)
+    return jsonify(body), status_code
+
+
+@auth_bp.post("/resend-verification")
+def resend_verification():
+    data = request.get_json(silent=True) or {}
+    codigo_alumno = data.get("codigo_alumno", "")
+    ip = request.remote_addr or "desconocida"
+
+    status_code, body = service.reenviar_verificacion(codigo_alumno, ip)
     return jsonify(body), status_code
 
 
@@ -28,16 +49,3 @@ def verificar_email():
         mensaje = quote_plus(body.get("error", "Verificación fallida"))
         redirect_url = f"{service.Config.FRONTEND_URL}/login.html?verified=0&message={mensaje}"
     return redirect(redirect_url)
-
-@auth_bp.post("/activar-cuenta")
-def activar_cuenta():
-    data = request.get_json(silent=True) or {}
-    codigoalumno = data.get("codigoalumno", "")
-    dni = data.get("dni", "")
-    nueva_contrasena = data.get("nueva_contrasena", "")
-    ip = request.remote_addr or "desconocida"
-
-    status_code, body = service.activar_cuenta(codigoalumno, dni, nueva_contrasena, ip)
-    return jsonify(body), status_code
-
-
