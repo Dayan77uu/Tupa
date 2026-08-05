@@ -20,7 +20,7 @@ MINUTOS_EXPIRACION_VERIFICACION = 60
 MENSAJE_CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos"
 MENSAJE_ERROR_SISTEMA = "Error de conexión. Intente nuevamente."
 MENSAJE_CUENTA_NO_ACTIVADA = "Esta cuenta aún no ha sido verificada. Revisa tu correo de verificación."
-MENSAJE_DATOS_NO_COINCIDEN = "Los datos ingresados no coinciden con ningún registro."
+MENSAJE_DATOS_NO_COINCIDEN = "El DNI o código de alumno no son válidos."
 MENSAJE_CUENTA_YA_ACTIVADA = "La cuenta ya fue verificada. Usa \"Olvidé mi contraseña\"."
 MENSAJE_REGISTRO_REQUERIDO = (
     "Si aún no tienes cuenta, proporciona codigoalumno, dni y una contraseña segura "
@@ -92,22 +92,24 @@ def _crear_cuenta_alumno(codigoalumno: str, contrasena: str, dni: str):
     if perfil_estudiante is None:
         return None, "No existe el perfil ESTUDIANTE en la base de datos."
 
-    alumno = Alumno.query.filter_by(codigoalumno=codigoalumno.strip(), dni=dni.strip()).first()
-    if alumno is None:
-        return None, MENSAJE_DATOS_NO_COINCIDEN
-
-    if db.session.get(Usuario, dni.strip()):
-        return None, "Ya existe una cuenta con ese DNI. Usa tu correo y contraseña para iniciar sesión."
-
     correo_generado = _armar_correo(codigoalumno)
+
+    # Eliminamos la validación estricta contra talumno a petición del usuario.
+    # Cualquier código y DNI será aceptado, confiando en la verificación por correo.
+    if Usuario.query.filter_by(cdni=dni.strip()).first() is not None:
+        return None, "Ya existe una cuenta registrada con este DNI."
+        
+    if Usuario.query.filter_by(ccorreo=correo_generado).first() is not None:
+        return None, f"Ya existe una cuenta registrada con el correo {correo_generado}."
+
     usuario = Usuario(
         cidtusuario=dni.strip(),
         nidttipousuario=1,
         cdni=dni.strip(),
         ccodigo=codigoalumno.strip(),
-        cnombres=alumno.nombresalumno or "",
-        cpaterno=alumno.apalumno or "",
-        cmaterno=alumno.amalumno or "",
+        cnombres="Estudiante",
+        cpaterno="UNSAAC",
+        cmaterno="",
         ccorreo=correo_generado,
     )
     db.session.add(usuario)
