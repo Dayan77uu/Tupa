@@ -1,3 +1,5 @@
+import re
+
 from flask import Flask, jsonify
 from sqlalchemy import text
 
@@ -14,7 +16,18 @@ def create_app():
     mail.init_app(app)
 
     from flask_cors import CORS
-    CORS(app, origins=["http://localhost:5173"])
+
+    # Localhost + rangos de IP privada (companeros en la misma red WiFi/LAN)
+    # + subdominios de trycloudflare.com (tunel temporal para alguien en otra
+    # red) -- todo esto es solo para pruebas de desarrollo, nunca produccion.
+    ORIGENES_PERMITIDOS = re.compile(
+        r"^http://(localhost|127\.0\.0\.1"
+        r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|192\.168\.\d{1,3}\.\d{1,3}"
+        r"|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):5173$"
+        r"|^https://[a-z0-9-]+\.trycloudflare\.com$"
+    )
+    CORS(app, origins=ORIGENES_PERMITIDOS)
 
     from app.auth.routes import auth_bp
     from app.catalogo.routes import catalogo_bp

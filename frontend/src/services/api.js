@@ -1,8 +1,13 @@
 import axios from "axios";
 import { obtenerToken, limpiarToken } from "../utils/storage";
 
+// Por defecto usa el mismo host desde el que se cargo la pagina (localhost,
+// IP de LAN) con el puerto del backend -- sirve para desarrollo local y para
+// pruebas en la misma red. Si el frontend y el backend estan detras de URLs
+// completamente distintas (ej. dos tuneles de Cloudflare, cada uno con su
+// propio dominio), se puede fijar VITE_API_BASE_URL en frontend/.env.
 const api = axios.create({
-  baseURL: "http://127.0.0.1:5000",
+  baseURL: import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`,
 });
 
 api.interceptors.request.use((config) => {
