@@ -181,11 +181,7 @@ def autenticar(correo: str, contrasena: str, ip: str, codigoalumno: str = "", dn
             _enviar_correo(correo_generado, asunto, cuerpo)
             _registrar_auditoria(correo_normalizado, ip, "EXITOSO")
             return 202, {
-                "mensaje": (
-                    "Tu cuenta fue creada correctamente. Revisa tu correo generado "
-                    "para verificarla y luego inicia sesión con tu contraseña."
-                ),
-                "correo_generado": correo_generado,
+                "mensaje": "Se te envio un correo de verificacion a tu bandeja de mensajes"
             }
 
         login = Login.query.filter_by(cidtusuario=usuario.cidtusuario).first()

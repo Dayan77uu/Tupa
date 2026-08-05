@@ -89,6 +89,8 @@ form.addEventListener("submit", async (evento) => {
   errorLogin.hidden = true;
 
   const correo = campoCorreo.value.trim();
+  const codigoalumno = document.getElementById("codigoalumno").value.trim();
+  const dni = document.getElementById("dni").value.trim();
   const contrasena = campoContrasena.value;
 
   if (correo && !correoTieneDominioValido(correo)) {
@@ -96,10 +98,10 @@ form.addEventListener("submit", async (evento) => {
     return;
   }
 
-  if (!correo) {
+  if (!correo && (!codigoalumno || !dni)) {
     mostrarBanner(
       "error",
-      "Ingresa tu correo para iniciar sesión."
+      "Ingresa tu correo para iniciar sesión o, si aún no tienes cuenta, proporciona código de alumno y DNI para registrarte."
     );
     return;
   }
@@ -111,13 +113,14 @@ form.addEventListener("submit", async (evento) => {
     const respuesta = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ correo, contrasena }),
+      body: JSON.stringify({ correo, contrasena, codigoalumno, dni }),
     });
 
     const datos = await respuesta.json();
 
     if (respuesta.status === 202) {
-      mostrarBanner("success", datos.mensaje || "Revisa tu correo para verificar tu cuenta.");
+      mostrarBanner("exito", datos.mensaje);
+      form.reset();
       return;
     }
 
