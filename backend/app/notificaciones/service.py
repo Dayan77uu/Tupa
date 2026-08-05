@@ -9,21 +9,49 @@ from app.models.usuario import Usuario
 
 def _enviar_correo(destinatario: str, mensaje: str) -> bool:
     """Devuelve True si se envio realmente, False si quedo en modo simulado."""
+    asunto = "TUPA UNSAAC - Actualizacion de tramite"
+
+    # SendGrid primero (API HTTP, puerto 443): Render bloquea el puerto SMTP
+    # 587 en el plan gratuito, asi que smtplib se queda colgado esperando una
+    # conexion que nunca llega.
+    if Config.SENDGRID_API_KEY:
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+
+            mensaje_sg = Mail(
+                from_email=Config.SENDGRID_FROM_EMAIL,
+                to_emails=destinatario,
+                subject=asunto,
+                plain_text_content=mensaje,
+            )
+            respuesta = SendGridAPIClient(Config.SENDGRID_API_KEY).send(mensaje_sg)
+            return 200 <= respuesta.status_code < 300
+        except Exception as e:
+            print(f"[ERROR SENDGRID] No se pudo enviar correo a {destinatario}: {e}")
+            return False
+
     if not Config.SMTP_HOST or not Config.SMTP_USER or not Config.SMTP_PASSWORD:
         print(f"[SIMULADO] correo a {destinatario}: {mensaje}")
         return False
 
     email = EmailMessage()
-    email["Subject"] = "TUPA UNSAAC - Actualizacion de tramite"
-    email["From"] = Config.SMTP_USER
+    email["Subject"] = asunto
+    email["From"] = Config.SMTP_FROM or Config.SMTP_USER
     email["To"] = destinatario
     email.set_content(mensaje)
 
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as servidor:
-        servidor.starttls()
-        servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
-        servidor.send_message(email)
-    return True
+    try:
+        # timeout explicito: evita que la peticion se cuelgue indefinidamente
+        # si el puerto esta bloqueado a nivel de red (ej. Render free tier).
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as servidor:
+            servidor.starttls()
+            servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+            servidor.send_message(email)
+        return True
+    except Exception as e:
+        print(f"[ERROR SMTP] No se pudo enviar correo a {destinatario}: {e}")
+        return False
 
 
 def notificar(id_usuario: str, nro_expediente: str, mensaje: str) -> bool:

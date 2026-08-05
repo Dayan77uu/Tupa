@@ -27,6 +27,16 @@ services:
         value: documentos-tupa
       - key: CORS_ORIGINS
         value: "https://tupa-btr.pages.dev,http://localhost:8000,http://127.0.0.1:8000"
+      # SendGrid: Render bloquea el puerto SMTP 587 en el plan gratuito
+      # (ver render.com/docs/free), asi que el envio de correo real usa la
+      # API HTTP de SendGrid en vez de smtplib. Crear la API key en
+      # sendgrid.com y verificar SENDGRID_FROM_EMAIL como "Single Sender".
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        sync: false
+      # SMTP_* se dejan como respaldo/modo simulado si no se configura
+      # SendGrid -- no funcionan en el plan gratuito de Render (puerto bloqueado).
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
