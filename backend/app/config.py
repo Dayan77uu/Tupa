@@ -71,3 +71,10 @@ class Config:
     SMTP_USER = os.environ.get("SMTP_USER")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
     SMTP_FROM = os.environ.get("SMTP_FROM") or SMTP_USER
+
+    # SendGrid (API HTTP, puerto 443): Render bloquea el puerto SMTP 587 en el
+    # plan gratuito (ver render.com/docs/free), asi que el envio de correo real
+    # usa SendGrid cuando esta configurado. SMTP_* queda como respaldo/modo
+    # simulado si SENDGRID_API_KEY no esta presente.
+    SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+    SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL") or SMTP_FROM

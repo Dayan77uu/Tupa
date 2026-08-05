@@ -71,6 +71,27 @@ def _generar_token_verificacion(correo: str, codigoalumno: str, dni: str) -> str
 
 
 def _enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> bool:
+    # SendGrid primero (API HTTP, puerto 443): Render bloquea el puerto SMTP
+    # 587 en el plan gratuito, asi que el envio por smtplib se queda colgado
+    # esperando una conexion que nunca llega -- confirmado en vivo contra el
+    # backend desplegado (peticion sin respuesta despues de 90+ segundos).
+    if Config.SENDGRID_API_KEY:
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+
+            mensaje = Mail(
+                from_email=Config.SENDGRID_FROM_EMAIL,
+                to_emails=destinatario,
+                subject=asunto,
+                plain_text_content=cuerpo,
+            )
+            respuesta = SendGridAPIClient(Config.SENDGRID_API_KEY).send(mensaje)
+            return 200 <= respuesta.status_code < 300
+        except Exception as e:
+            print(f"[ERROR SENDGRID] No se pudo enviar correo a {destinatario}: {e}")
+            return False
+
     if not Config.SMTP_HOST or not Config.SMTP_USER or not Config.SMTP_PASSWORD:
         print(f"[SIMULADO] correo a {destinatario}: {asunto}\n{cuerpo}")
         return False
@@ -82,7 +103,10 @@ def _enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> bool:
     email.set_content(cuerpo)
 
     try:
-        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as servidor:
+        # timeout explicito: si el puerto esta bloqueado a nivel de red (como
+        # en Render free), esto falla rapido en vez de colgar la peticion
+        # indefinidamente en vez de nunca responder.
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as servidor:
             servidor.starttls()
             servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
             servidor.send_message(email)
