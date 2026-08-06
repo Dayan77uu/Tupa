@@ -170,18 +170,32 @@ def _generar_cidtusuario_registro() -> str:
 
 def _enviar_correo_verificacion(email: str, nombre: str, token: str) -> None:
     enlace = f"{Config.FRONTEND_URL}/verificar-correo?token={token}"
-    mensaje = Message(
-        subject="Verifica tu correo - Plataforma TUPA UNSAAC",
-        recipients=[email],
-        body=(
-            f"Hola {nombre},\n\n"
-            "Gracias por registrarte en la Plataforma TUPA UNSAAC.\n"
-            f"Verifica tu correo entrando a este enlace (valido por {HORAS_EXPIRACION_TOKEN_REGISTRO} horas):\n"
-            f"{enlace}\n\n"
-            "Si no solicitaste esto, ignora este correo."
-        ),
+    asunto = "Verifica tu correo - Plataforma TUPA UNSAAC"
+    cuerpo = (
+        f"Hola {nombre},\n\n"
+        "Gracias por registrarte en la Plataforma TUPA UNSAAC.\n"
+        f"Verifica tu correo entrando a este enlace (valido por {HORAS_EXPIRACION_TOKEN_REGISTRO} horas):\n"
+        f"{enlace}\n\n"
+        "Si no solicitaste esto, ignora este correo."
     )
-    mail.send(mensaje)
+
+    if Config.MAILJET_API_KEY:
+        from mailjet_rest import Client
+
+        cliente = Client(auth=(Config.MAILJET_API_KEY, Config.MAILJET_API_SECRET), version="v3.1")
+        respuesta = cliente.send.create(data={
+            "Messages": [{
+                "From": {"Email": Config.MAILJET_FROM_EMAIL, "Name": "TUPA UNSAAC"},
+                "To": [{"Email": email}],
+                "Subject": asunto,
+                "TextPart": cuerpo,
+            }]
+        })
+        if not (200 <= respuesta.status_code < 300):
+            raise RuntimeError(f"Mailjet respondio {respuesta.status_code}: {respuesta.json()}")
+        return
+
+    mail.send(Message(subject=asunto, recipients=[email], body=cuerpo))
 
 
 def registrar(email: str, nombre: str, password: str, confirmar_password: str):

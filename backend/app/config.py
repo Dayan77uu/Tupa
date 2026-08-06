@@ -29,6 +29,13 @@ class Config:
     SMTP_USER = os.environ.get("SMTP_USER")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
+    # Mailjet: metodo principal de envio (funciona en hosts que bloquean SMTP
+    # saliente, como Render o PythonAnywhere free). Si no esta configurado, se
+    # usa MAIL_* (Flask-Mail) como respaldo.
+    MAILJET_API_KEY = os.environ.get("MAILJET_API_KEY")
+    MAILJET_API_SECRET = os.environ.get("MAILJET_API_SECRET")
+    MAILJET_FROM_EMAIL = os.environ.get("MAILJET_FROM_EMAIL") or os.environ.get("MAIL_DEFAULT_SENDER")
+
     # Flask-Mail: verificacion de correo en el registro de nuevos usuarios (Sprint 6).
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))

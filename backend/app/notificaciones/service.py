@@ -9,21 +9,45 @@ from app.models.usuario import Usuario
 
 def _enviar_correo(destinatario: str, mensaje: str) -> bool:
     """Devuelve True si se envio realmente, False si quedo en modo simulado."""
+    asunto = "TUPA UNSAAC - Actualizacion de tramite"
+
+    if Config.MAILJET_API_KEY:
+        from mailjet_rest import Client
+
+        cliente = Client(auth=(Config.MAILJET_API_KEY, Config.MAILJET_API_SECRET), version="v3.1")
+        try:
+            respuesta = cliente.send.create(data={
+                "Messages": [{
+                    "From": {"Email": Config.MAILJET_FROM_EMAIL, "Name": "TUPA UNSAAC"},
+                    "To": [{"Email": destinatario}],
+                    "Subject": asunto,
+                    "TextPart": mensaje,
+                }]
+            })
+            return 200 <= respuesta.status_code < 300
+        except Exception as e:
+            print(f"[ERROR MAILJET] No se pudo enviar correo a {destinatario}: {e}")
+            return False
+
     if not Config.SMTP_HOST or not Config.SMTP_USER or not Config.SMTP_PASSWORD:
         print(f"[SIMULADO] correo a {destinatario}: {mensaje}")
         return False
 
     email = EmailMessage()
-    email["Subject"] = "TUPA UNSAAC - Actualizacion de tramite"
+    email["Subject"] = asunto
     email["From"] = Config.SMTP_USER
     email["To"] = destinatario
     email.set_content(mensaje)
 
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as servidor:
-        servidor.starttls()
-        servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
-        servidor.send_message(email)
-    return True
+    try:
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as servidor:
+            servidor.starttls()
+            servidor.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+            servidor.send_message(email)
+        return True
+    except Exception as e:
+        print(f"[ERROR SMTP] No se pudo enviar correo a {destinatario}: {e}")
+        return False
 
 
 def notificar(id_usuario: str, nro_expediente: str, mensaje: str) -> bool:
